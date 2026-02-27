@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTasks } from "../hooks/useTasks";
 import {
@@ -18,30 +19,53 @@ import {
   DialogContent,
   DialogActions,
 } from "@mui/material";
-import { ArrowBack, Edit, Delete } from "@mui/icons-material";
+import {
+  ArrowBack as ArrowBackIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  CalendarToday as CalendarIcon,
+} from "@mui/icons-material";
 import dayjs from "dayjs";
-import { useState } from "react";
 
-const priorityColors = { low: "success", medium: "warning", high: "error" };
+const priorityColors = {
+  low: "success",
+  medium: "warning",
+  high: "error",
+};
 
 const TaskDetails = () => {
   const { id } = useParams();
   const { tasks, toggleComplete, deleteTask } = useTasks();
   const navigate = useNavigate();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isMobile = useMediaQuery(theme.breakpoints.down("md")); // using md for better tablet support
+
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const task = tasks.find((t) => t.id === id);
 
-  if (!task)
+  if (!task) {
     return (
-      <Alert severity="info" sx={{ m: 3 }}>
-        Task not found
-      </Alert>
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          p: 4,
+        }}
+      >
+        <Alert severity="info" variant="outlined">
+          Task not found
+        </Alert>
+      </Box>
     );
+  }
 
-  const due = task.dueDate
+  const isOverdue =
+    task.dueDate && !task.completed && dayjs(task.dueDate).isBefore(dayjs());
+
+  const dueDateText = task.dueDate
     ? dayjs(task.dueDate).format("MMM D, YYYY")
     : "No due date";
 
@@ -58,56 +82,87 @@ const TaskDetails = () => {
         bgcolor: "background.default",
         display: "flex",
         flexDirection: "column",
+        pb:6
       }}
     >
       {/* Header */}
-      <Box sx={{ display: "flex", alignItems: "center", px: 2, py: 2 }}>
-        <IconButton onClick={() => navigate("/")}>
-          <ArrowBack />
-        </IconButton>
-        <Typography
-          variant={isMobile ? "h6" : "h4"}
-          sx={{ ml: 2, flexGrow: 1 }}
+      <Box
+        sx={{
+          borderBottom: `1px solid ${theme.palette.divider}`,
+          bgcolor: "background.paper",
+          position: "sticky",
+          top: 0,
+          zIndex: theme.zIndex.appBar,
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            px: { xs: 2, sm: 4 },
+            py: 2,
+          }}
         >
-          {task.title}
-        </Typography>
+          <IconButton
+            onClick={() => navigate("/")}
+            edge="start"
+            sx={{ mr: 1.5 }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+
+          <Typography
+            variant={isMobile ? "h6" : "h5"}
+            fontWeight={600}
+            sx={{
+              flexGrow: 1,
+              textDecoration: task.completed ? "line-through" : "none",
+              color: task.completed ? "text.disabled" : "text.primary",
+            }}
+          >
+            {task.title}
+          </Typography>
+        </Box>
       </Box>
 
-      {/* Content */}
+      {/* Main Content */}
       <Box
         sx={{
           flex: 1,
-          px: 2,
-          pb: isMobile ? 12 : 4,
-          width: "100%",
+          px: { xs: 2, sm: 4 },
+          py: { xs: 3, sm: 4 },
           maxWidth: 900,
           mx: "auto",
+          width: "100%",
         }}
       >
         <Paper
-          elevation={isMobile ? 0 : 2}
+          elevation={isMobile ? 0 : 1}
           sx={{
-            p: isMobile ? 0 : 3,
-            bgcolor: isMobile ? "transparent" : "background.paper",
+            p: { xs: 3, sm: 4 },
+            borderRadius: 3,
+            bgcolor: "background.paper",
           }}
         >
-          <Stack direction="column" spacing={3}>
+          <Stack spacing={4}>
             {/* Status */}
             <Box>
-              <Typography variant="subtitle2" color="text.secondary">
-                Status
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                STATUS
               </Typography>
-              <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                 <Checkbox
                   checked={task.completed}
                   onChange={() => toggleComplete(id)}
                   color="success"
-                  size="large"
+                  size="medium"
+                  sx={{ p: 0.5 }}
                 />
                 <Typography
+                  variant="body1"
+                  fontWeight={500}
                   sx={{
-                    ml: 1,
-                    textDecoration: task.completed ? "line-through" : "none",
+                    color: task.completed ? "success.main" : "text.primary",
                   }}
                 >
                   {task.completed ? "Completed" : "Active"}
@@ -119,28 +174,42 @@ const TaskDetails = () => {
 
             {/* Due Date */}
             <Box>
-              <Typography variant="subtitle2" color="text.secondary">
-                Due Date
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                DUE DATE
               </Typography>
-              <Typography
-                sx={{ mt: 1, cursor: "pointer" }}
-                onClick={() => navigate(`/tasks/${id}`)}
-              >
-                {due}
-              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <CalendarIcon
+                  fontSize="small"
+                  sx={{
+                    color: isOverdue ? "error.main" : "text.secondary",
+                  }}
+                />
+                <Typography
+                  variant="body1"
+                  sx={{
+                    color: isOverdue ? "error.main" : "text.primary",
+                    fontWeight: isOverdue ? 500 : 400,
+                  }}
+                >
+                  {dueDateText}
+                  {isOverdue && " (Overdue)"}
+                </Typography>
+              </Box>
             </Box>
 
             <Divider />
 
             {/* Priority */}
             <Box>
-              <Typography variant="subtitle2" color="text.secondary">
-                Priority
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                PRIORITY
               </Typography>
               <Chip
-                label={task.priority?.toUpperCase() || "None"}
+                label={(task.priority || "None").toUpperCase()}
                 color={priorityColors[task.priority] || "default"}
-                sx={{ mt: 1 }}
+                variant="outlined"
+                size="medium"
+                sx={{ mt: 0.5 }}
               />
             </Box>
 
@@ -148,17 +217,22 @@ const TaskDetails = () => {
 
             {/* Tags */}
             <Box>
-              <Typography variant="subtitle2" color="text.secondary">
-                Tags
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                TAGS
               </Typography>
-              <Box sx={{ mt: 1 }}>
+              <Box sx={{ mt: 1, display: "flex", flexWrap: "wrap", gap: 1 }}>
                 {task.tags?.length > 0 ? (
                   task.tags.map((tag) => (
-                    <Chip key={tag} label={tag} sx={{ mr: 1, mb: 1 }} />
+                    <Chip
+                      key={tag}
+                      label={tag}
+                      size="small"
+                      variant="outlined"
+                    />
                   ))
                 ) : (
                   <Typography variant="body2" color="text.secondary">
-                    No tags
+                    No tags added
                   </Typography>
                 )}
               </Box>
@@ -174,9 +248,12 @@ const TaskDetails = () => {
                     color="text.secondary"
                     gutterBottom
                   >
-                    Description
+                    DESCRIPTION
                   </Typography>
-                  <Typography whiteSpace="pre-wrap">
+                  <Typography
+                    variant="body1"
+                    sx={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}
+                  >
                     {task.description}
                   </Typography>
                 </Box>
@@ -186,7 +263,7 @@ const TaskDetails = () => {
         </Paper>
       </Box>
 
-      {/* Mobile Bottom Actions */}
+      {/* Actions - Mobile Bottom Bar */}
       {isMobile && (
         <Box
           sx={{
@@ -195,17 +272,17 @@ const TaskDetails = () => {
             left: 0,
             right: 0,
             p: 2,
+            bgcolor: "background.paper",
+            borderTop: `1px solid ${theme.palette.divider}`,
             display: "flex",
             gap: 2,
-            bgcolor: "background.paper",
-            borderTop: "1px solid",
-            borderColor: "divider",
+            boxShadow: "0 -2px 10px rgba(0,0,0,0.08)",
           }}
         >
           <Button
             fullWidth
-            variant="contained"
-            startIcon={<Edit />}
+            variant="outlined"
+            startIcon={<EditIcon />}
             onClick={() => navigate(`/tasks/${id}/edit`)}
           >
             Edit
@@ -214,7 +291,7 @@ const TaskDetails = () => {
             fullWidth
             variant="outlined"
             color="error"
-            startIcon={<Delete />}
+            startIcon={<DeleteIcon />}
             onClick={() => setDeleteConfirmOpen(true)}
           >
             Delete
@@ -222,13 +299,13 @@ const TaskDetails = () => {
         </Box>
       )}
 
-      {/* Desktop Floating Actions */}
+      {/* Actions - Desktop Floating */}
       {!isMobile && (
         <Box
           sx={{
             position: "fixed",
-            right: 32,
             bottom: 32,
+            right: 32,
             display: "flex",
             flexDirection: "column",
             gap: 2,
@@ -236,34 +313,43 @@ const TaskDetails = () => {
         >
           <Button
             variant="contained"
-            startIcon={<Edit />}
+            startIcon={<EditIcon />}
+            disableElevation
             onClick={() => navigate(`/tasks/${id}/edit`)}
+            sx={{ minWidth: 140 }}
           >
             Edit Task
           </Button>
           <Button
             variant="outlined"
             color="error"
-            startIcon={<Delete />}
+            startIcon={<DeleteIcon />}
             onClick={() => setDeleteConfirmOpen(true)}
+            sx={{ minWidth: 140 }}
           >
             Delete Task
           </Button>
         </Box>
       )}
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Confirmation */}
       <Dialog
         open={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
+        maxWidth="xs"
+        fullWidth
       >
-        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogTitle>Delete Task?</DialogTitle>
         <DialogContent>
-          Are you sure you want to delete this task?
+          <Typography>
+            This action cannot be undone. The task will be permanently removed.
+          </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
-          <Button color="error" onClick={handleDelete}>
+          <Button onClick={() => setDeleteConfirmOpen(false)}>
+            Cancel
+          </Button>
+          <Button color="error" variant="contained" onClick={handleDelete}>
             Delete
           </Button>
         </DialogActions>

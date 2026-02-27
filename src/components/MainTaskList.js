@@ -8,6 +8,7 @@ import {
   Box,
   Drawer,
   List,
+  ListItem,
   ListItemButton,
   ListItemText,
   IconButton,
@@ -20,13 +21,15 @@ import {
   InputAdornment,
   useTheme,
   useMediaQuery,
+  alpha,
 } from "@mui/material";
 
 import MenuIcon from "@mui/icons-material/Menu";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 
-const drawerWidth = 240;
+const drawerWidth = 260;
 
 const priorityColors = {
   low: "success",
@@ -38,7 +41,7 @@ const MainTaskList = () => {
   const { tasks, toggleComplete } = useTasks();
   const navigate = useNavigate();
   const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up("sm"));
+  const isDesktop = useMediaQuery(theme.breakpoints.up("md")); // changed to md for better tablet experience
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [filter, setFilter] = useState("All");
@@ -46,15 +49,15 @@ const MainTaskList = () => {
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
 
-  // ===============================
-  // Filtering Logic
-  // ===============================
+  // ────────────────────────────────────────────────
+  // Filtering (unchanged logic)
+  // ────────────────────────────────────────────────
   const filteredTasks = useMemo(() => {
     return tasks
       .filter((task) => {
         const matchesSearch =
           task.title.toLowerCase().includes(search.toLowerCase()) ||
-          task.description?.toLowerCase().includes(search.toLowerCase());
+          (task.description ?? "").toLowerCase().includes(search.toLowerCase());
 
         if (!matchesSearch) return false;
 
@@ -85,59 +88,121 @@ const MainTaskList = () => {
   const priorities = ["All", "Low", "Medium", "High"];
 
   const drawerContent = (
-    <>
-      <Toolbar />
-      <Typography variant="h6" sx={{ p: 2 }}>
-        Filters
+    <Box sx={{ width: drawerWidth, pt: 2 }}>
+      <Typography
+        variant="subtitle2"
+        sx={{
+          px: 3,
+          pb: 1,
+          color: "text.secondary",
+          fontWeight: 600,
+          letterSpacing: 0.5,
+        }}
+      >
+        FILTERS
       </Typography>
-      <List>
+
+      <List disablePadding>
         {filters.map((item) => (
-          <ListItemButton
-            key={item}
-            selected={filter === item}
-            onClick={() => {
-              setFilter(item);
-              if (!isDesktop) setMobileOpen(false);
-            }}
-          >
-            <ListItemText primary={item} />
-          </ListItemButton>
+          <ListItem disablePadding key={item}>
+            <ListItemButton
+              selected={filter === item}
+              onClick={() => {
+                setFilter(item);
+                if (!isDesktop) setMobileOpen(false);
+              }}
+              sx={{
+                py: 1.1,
+                px: 3,
+                "&.Mui-selected": {
+                  bgcolor: alpha(theme.palette.primary.main, 0.12),
+                  "&:hover": {
+                    bgcolor: alpha(theme.palette.primary.main, 0.18),
+                  },
+                },
+              }}
+            >
+              <ListItemText
+                primary={item}
+                primaryTypographyProps={{
+                  fontWeight: filter === item ? 600 : 400,
+                  color: filter === item ? "primary.main" : "text.primary",
+                }}
+              />
+            </ListItemButton>
+          </ListItem>
         ))}
       </List>
-      <Divider />
-      <Typography variant="h6" sx={{ p: 2 }}>
-        Priority
+
+      <Divider sx={{ my: 2 }} />
+
+      <Typography
+        variant="subtitle2"
+        sx={{
+          px: 3,
+          pb: 1,
+          color: "text.secondary",
+          fontWeight: 600,
+          letterSpacing: 0.5,
+        }}
+      >
+        PRIORITY
       </Typography>
-      <List>
+
+      <List disablePadding>
         {priorities.map((item) => (
-          <ListItemButton
-            key={item}
-            selected={priorityFilter === item}
-            onClick={() => {
-              setPriorityFilter(item);
-              if (!isDesktop) setMobileOpen(false);
-            }}
-          >
-            <ListItemText primary={item} />
-          </ListItemButton>
+          <ListItem disablePadding key={item}>
+            <ListItemButton
+              selected={priorityFilter === item}
+              onClick={() => {
+                setPriorityFilter(item);
+                if (!isDesktop) setMobileOpen(false);
+              }}
+              sx={{
+                py: 1.1,
+                px: 3,
+                "&.Mui-selected": {
+                  bgcolor: alpha(theme.palette.primary.main, 0.12),
+                  "&:hover": {
+                    bgcolor: alpha(theme.palette.primary.main, 0.18),
+                  },
+                },
+              }}
+            >
+              <ListItemText
+                primary={item}
+                primaryTypographyProps={{
+                  fontWeight: priorityFilter === item ? 600 : 400,
+                  color:
+                    priorityFilter === item ? "primary.main" : "text.primary",
+                }}
+              />
+            </ListItemButton>
+          </ListItem>
         ))}
       </List>
-    </>
+    </Box>
   );
 
   return (
-    <Box sx={{ display: "flex", height: "100vh", marginTop:showSearch && "45px" }}>
-      {/* ===============================
-          APP BAR
-      ================================= */}
-      <AppBar position="fixed" sx={{ zIndex: theme.zIndex.drawer + 1 }}>
-        <Toolbar>
+    <Box sx={{ display: "flex", minHeight: "100vh" }}>
+      {/* ─── App Bar ──────────────────────────────────────────────── */}
+      <AppBar
+        position="fixed"
+        elevation={0}
+        sx={{
+          borderBottom: `1px solid ${theme.palette.divider}`,
+          bgcolor: "background.paper",
+          color: "text.primary",
+        }}
+      >
+        <Toolbar sx={{ minHeight: 64 }}>
           {!isDesktop && (
             <IconButton
               edge="start"
               color="inherit"
               onClick={() => setMobileOpen(true)}
-              sx={{ mr: 1 }}
+              sx={{ mr: 1.5 }}
             >
               <MenuIcon />
             </IconButton>
@@ -145,7 +210,12 @@ const MainTaskList = () => {
 
           <Typography
             variant="h6"
-            sx={{ flexGrow: 1, textDecoration: "none", color: "inherit" }}
+            component="div"
+            sx={{
+              flexGrow: 1,
+              fontWeight: 600,
+              letterSpacing: "-0.015em",
+            }}
           >
             Task Tracker
           </Typography>
@@ -157,14 +227,19 @@ const MainTaskList = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               sx={{
-                bgcolor: "white",
-                borderRadius: 1,
-                width: 300,
+                width: 320,
+                maxWidth: "100%",
+                "& .MuiOutlinedInput-root": {
+                  bgcolor: alpha(theme.palette.common.white, 0.15),
+                  borderRadius: 2,
+                  "& fieldset": { borderColor: "divider" },
+                  "&:hover fieldset": { borderColor: "primary.main" },
+                },
               }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <SearchIcon />
+                    <SearchIcon fontSize="small" />
                   </InputAdornment>
                 ),
               }}
@@ -173,14 +248,16 @@ const MainTaskList = () => {
             <IconButton
               color="inherit"
               onClick={() => setShowSearch(!showSearch)}
+              sx={{ ml: 1 }}
             >
               <SearchIcon />
             </IconButton>
           )}
         </Toolbar>
 
+        {/* Mobile search bar */}
         {!isDesktop && showSearch && (
-          <Box sx={{ p: 2, bgcolor: "background.paper" }}>
+          <Box sx={{ px: 2, pb: 2, bgcolor: "background.paper" }}>
             <TextField
               fullWidth
               size="small"
@@ -191,18 +268,22 @@ const MainTaskList = () => {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <SearchIcon />
+                    <SearchIcon fontSize="small" />
                   </InputAdornment>
                 ),
+              }}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  bgcolor: "background.default",
+                  borderRadius: 2,
+                },
               }}
             />
           </Box>
         )}
       </AppBar>
 
-      {/* ===============================
-          DRAWER
-      ================================= */}
+      {/* ─── Drawer ───────────────────────────────────────────────── */}
       <Drawer
         variant={isDesktop ? "permanent" : "temporary"}
         open={isDesktop || mobileOpen}
@@ -210,102 +291,168 @@ const MainTaskList = () => {
         sx={{
           width: drawerWidth,
           flexShrink: 0,
-          "& .MuiDrawer-paper": {
+          [`& .MuiDrawer-paper`]: {
             width: drawerWidth,
             boxSizing: "border-box",
+            borderRight: `1px solid ${theme.palette.divider}`,
+            bgcolor: "background.paper",
           },
         }}
       >
         {drawerContent}
       </Drawer>
 
-      {/* ===============================
-          MAIN CONTENT - MOBILE STYLE
-      ================================= */}
-      <Box component="main" sx={{ flexGrow: 1, p: 2, mt: isDesktop ? 8 : 10 }}>
-        {filteredTasks.map((task) => (
-          <Paper
-            key={task.id}
-            elevation={0}
+      {/* ─── Main Content ─────────────────────────────────────────── */}
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          p: { xs: 2, sm: 3 },
+          pt: { xs: 10, md: 10 },
+          pb: { xs: 10, sm: 6 },
+          bgcolor: "background.default",
+          minHeight: "100vh",
+        }}
+      >
+        {filteredTasks.length === 0 ? (
+          <Box
             sx={{
-              p: 2,
-              mb: 2,
-              border: "1px solid",
-              borderColor: "divider",
+              height: "60vh",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexDirection: "column",
+              color: "text.secondary",
+              gap: 2,
             }}
           >
-            <Box
+            <SearchIcon sx={{ fontSize: 64, opacity: 0.2 }} />
+            <Typography variant="h6" color="text.secondary">
+              No tasks found
+            </Typography>
+            <Typography variant="body2">
+              Try adjusting your filters or search terms
+            </Typography>
+          </Box>
+        ) : (
+          filteredTasks.map((task) => (
+            <Paper
+              key={task.id}
+              elevation={0}
               sx={{
-                display: "flex",
-                alignItems: "flex-start",
-                cursor: "pointer",
+                mb: 2,
+                p: 2.5,
+                borderRadius: 2,
+                border: `1px solid ${theme.palette.divider}`,
+                transition: "all 0.15s ease",
+                bgcolor: task.completed
+                  ? alpha(theme.palette.action.selected, 0.4)
+                  : "background.paper",
+                "&:hover": {
+                  borderColor: "primary.main",
+                  transform: "translateY(-1px)",
+                  boxShadow: theme.shadows[2],
+                },
               }}
             >
-              <Checkbox
-                checked={task.completed}
-                onChange={() => toggleComplete(task.id)}
-              />
-
-              <Box
-                sx={{ flex: 1 }}
-                onClick={() => navigate(`/tasks/${task.id}`)}
-              >
-                <Typography
-                  fontWeight={500}
-                  noWrap
-                  sx={{
-                    textDecoration: task.completed ? "line-through" : "none",
-                  }}
-                >
-                  {task.title}
-                </Typography>
-
-                {task.description && (
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{
-                      display: "-webkit-box",
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {task.description}
-                  </Typography>
-                )}
+              <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
+                <Checkbox
+                  checked={task.completed}
+                  onChange={() => toggleComplete(task.id)}
+                  sx={{ mt: 0.3 }}
+                />
 
                 <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    mt: 1,
-                  }}
+                  sx={{ flex: 1, cursor: "pointer" }}
+                  onClick={() => navigate(`/tasks/${task.id}`)}
                 >
-                  <Typography variant="caption" color="primary">
-                    {task.dueDate
-                      ? new Date(task.dueDate).toLocaleDateString()
-                      : "No due date"}
+                  <Typography
+                    variant="subtitle1"
+                    sx={{
+                      fontWeight: 500,
+                      textDecoration: task.completed ? "line-through" : "none",
+                      color: task.completed ? "text.disabled" : "text.primary",
+                      mb: 0.5,
+                    }}
+                  >
+                    {task.title}
                   </Typography>
 
-                  <Chip
-                    size="small"
-                    label={task.priority?.toUpperCase()}
-                    color={priorityColors[task.priority] || "default"}
-                  />
+                  {task.description && (
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                        mb: 1.5,
+                      }}
+                    >
+                      {task.description}
+                    </Typography>
+                  )}
+
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1.5,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 0.5,
+                        color:
+                          task.dueDate &&
+                          new Date(task.dueDate) < new Date() &&
+                          !task.completed
+                            ? "error.main"
+                            : "text.secondary",
+                      }}
+                    >
+                      <CalendarTodayIcon fontSize="inherit" />
+                      <Typography variant="caption">
+                        {task.dueDate
+                          ? new Date(task.dueDate).toLocaleDateString("en-GB", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : "No due date"}
+                      </Typography>
+                    </Box>
+
+                    {task.priority && (
+                      <Chip
+                        size="small"
+                        label={task.priority.toUpperCase()}
+                        color={priorityColors[task.priority] ?? "default"}
+                        variant="outlined"
+                      />
+                    )}
+                  </Box>
                 </Box>
               </Box>
-            </Box>
-          </Paper>
-        ))}
+            </Paper>
+          ))
+        )}
       </Box>
 
-      {/* ===============================
-          FAB
-      ================================= */}
+      {/* ─── Floating Action Button ──────────────────────────────── */}
       <Fab
         color="primary"
-        sx={{ position: "fixed", bottom: 24, right: 24 }}
+        aria-label="add task"
+        sx={{
+          position: "fixed",
+          bottom: 24,
+          right: 24,
+          boxShadow: theme.shadows[4],
+        }}
         onClick={() => navigate("/tasks/add")}
       >
         <AddIcon />

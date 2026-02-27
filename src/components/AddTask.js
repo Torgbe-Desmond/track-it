@@ -1,4 +1,4 @@
-import  { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTasks } from "../hooks/useTasks";
 import {
@@ -24,7 +24,7 @@ import {
   Paper,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { ArrowBack } from "@mui/icons-material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 const AddTask = ({ open, onClose }) => {
   const { addTask } = useTasks();
@@ -58,18 +58,19 @@ const AddTask = ({ open, onClose }) => {
 
   const handleSubmit = () => {
     if (!form.title.trim()) {
-      setError("Title is required");
+      setError("Task title is required");
       return;
     }
 
     addTask({
       title: form.title.trim(),
-      description: form.description.trim(),
+      description: form.description.trim() || undefined,
       dueDate: form.dueDate ? form.dueDate.toISOString() : null,
       priority: form.priority,
-      tags: form.tags,
+      tags: form.tags.length > 0 ? form.tags : undefined,
     });
 
+    // Reset form
     setForm({
       title: "",
       description: "",
@@ -77,41 +78,58 @@ const AddTask = ({ open, onClose }) => {
       priority: "medium",
       tags: [],
     });
-
     setError("");
 
-    if (isModal) onClose();
-    else navigate("/");
+    if (isModal) {
+      onClose();
+    } else {
+      navigate(-1);
+    }
   };
 
-  const content = (
-    <Stack spacing={3} sx={{ mt: 1 }}>
-      {error && <Alert severity="error">{error}</Alert>}
+  const formContent = (
+    <Stack spacing={3}>
+      {error && (
+        <Alert severity="error" sx={{ borderRadius: 2 }}>
+          {error}
+        </Alert>
+      )}
 
       <TextField
-        label="Title"
+        label="Task Title"
         name="title"
         value={form.title}
         onChange={handleChange}
         fullWidth
         required
         autoFocus
+        variant="outlined"
+        error={!!error && !form.title.trim()}
+        helperText={error && !form.title.trim() ? "This field is required" : ""}
       />
 
       <TextField
-        label="Description"
+        label="Description (optional)"
         name="description"
         value={form.description}
         onChange={handleChange}
         multiline
         rows={4}
         fullWidth
+        variant="outlined"
       />
 
-      <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-        <FormControl sx={{ minWidth: 140, flex: 1 }}>
-          <InputLabel>Priority</InputLabel>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          gap: 2.5,
+        }}
+      >
+        <FormControl fullWidth variant="outlined">
+          <InputLabel id="priority-label">Priority</InputLabel>
           <Select
+            labelId="priority-label"
             name="priority"
             value={form.priority}
             label="Priority"
@@ -124,10 +142,15 @@ const AddTask = ({ open, onClose }) => {
         </FormControl>
 
         <DatePicker
-          label="Due Date"
+          label="Due Date (optional)"
           value={form.dueDate}
           onChange={handleDateChange}
-          sx={{ flex: 1 }}
+          slotProps={{
+            textField: {
+              fullWidth: true,
+              variant: "outlined",
+            },
+          }}
         />
       </Box>
 
@@ -141,6 +164,7 @@ const AddTask = ({ open, onClose }) => {
           value.map((option, index) => (
             <Chip
               variant="outlined"
+              size="small"
               label={option}
               {...getTagProps({ index })}
               key={index}
@@ -150,139 +174,175 @@ const AddTask = ({ open, onClose }) => {
         renderInput={(params) => (
           <TextField
             {...params}
-            label="Tags (press enter to add)"
-            placeholder="e.g. work, urgent"
+            label="Tags"
+            placeholder="Type and press enter (e.g. work, urgent)"
+            helperText="Separate tags with Enter"
+            variant="outlined"
           />
         )}
       />
     </Stack>
   );
 
-  /* ================= MODAL MODE ================= */
+  // ─── MODAL MODE ───────────────────────────────────────────────
   if (isModal) {
     return (
-      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-        <DialogTitle>Add New Task</DialogTitle>
-        <DialogContent dividers>{content}</DialogContent>
-        <DialogActions>
-          <Button onClick={onClose}>Cancel</Button>
-          <Button variant="contained" onClick={handleSubmit}>
-            Save
+      <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3, overflow: "hidden" },
+        }}
+      >
+        <DialogTitle sx={{ pb: 1, pt: 3, px: 3 }}>
+          <Typography variant="h6" fontWeight={600}>
+            New Task
+          </Typography>
+        </DialogTitle>
+
+        <DialogContent dividers sx={{ px: 3, py: 3 }}>
+          {formContent}
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, py: 2.5 }}>
+          <Button onClick={onClose} color="inherit">
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            disableElevation
+            onClick={handleSubmit}
+            sx={{ minWidth: 100 }}
+          >
+            Save Task
           </Button>
         </DialogActions>
       </Dialog>
     );
   }
 
-  /* ================= FULL PAGE MODE ================= */
+  // ─── FULL PAGE MODE ───────────────────────────────────────────
   return (
     <Box
       sx={{
+        minHeight: "100vh",
+        bgcolor: "background.default",
         display: "flex",
         flexDirection: "column",
-        bgcolor: "background.default",
       }}
     >
       {/* Header */}
       <Box
         sx={{
-          display: "flex",
-          alignItems: "center",
-          px: 2,
-          py: 2,
+          borderBottom: `1px solid ${theme.palette.divider}`,
+          bgcolor: "background.paper",
+          position: "sticky",
+          top: 0,
+          zIndex: theme.zIndex.appBar,
         }}
       >
-        <IconButton onClick={() => navigate(-1)}>
-          <ArrowBack />
-        </IconButton>
-        <Typography variant="h6" sx={{ ml: 1 }}>
-          Add New Task
-        </Typography>
-      </Box>
-
-      {/* Desktop Centered Layout */}
-      {isDesktop ? (
         <Box
           sx={{
-            flex: 1,
             display: "flex",
-            justifyContent: "center",
-            px: 2,
-            pb: 6,
+            alignItems: "center",
+            px: { xs: 2, sm: 4 },
+            py: 2,
           }}
         >
-          <Paper
-            elevation={3}
-            sx={{
-              width: "100%",
-              maxWidth: 700,
-              p: 4,
-              borderRadius: 3,
-            }}
+          <IconButton
+            onClick={() => navigate(-1)}
+            edge="start"
+            sx={{ mr: 1.5 }}
           >
-            {content}
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h6" fontWeight={600}>
+            New Task
+          </Typography>
+        </Box>
+      </Box>
 
+      {/* Form Content */}
+      <Box
+        sx={{
+          flex: 1,
+          px: { xs: 2, sm: 4 },
+          py: { xs: 3, md: 5 },
+          maxWidth: 780,
+          mx: "auto",
+          width: "100%",
+        }}
+      >
+        <Paper
+          elevation={isDesktop ? 2 : 0}
+          sx={{
+            p: { xs: 3, md: 5 },
+            borderRadius: 3,
+            bgcolor: "background.paper",
+          }}
+        >
+          {formContent}
+
+          {isDesktop && (
             <Box
               sx={{
                 display: "flex",
                 justifyContent: "flex-end",
                 gap: 2,
-                mt: 4,
+                mt: 5,
               }}
             >
-              <Button variant="outlined" onClick={() => navigate("/")}>
+              <Button
+                variant="outlined"
+                onClick={() => navigate(-1)}
+                sx={{ minWidth: 110 }}
+              >
                 Cancel
               </Button>
-              <Button variant="contained" onClick={handleSubmit}>
-                Save
+              <Button
+                variant="contained"
+                disableElevation
+                onClick={handleSubmit}
+                sx={{ minWidth: 110 }}
+              >
+                Save Task
               </Button>
             </Box>
-          </Paper>
+          )}
+        </Paper>
+      </Box>
+
+      {/* Mobile fixed bottom bar */}
+      {!isDesktop && (
+        <Box
+          sx={{
+            position: "fixed",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            p: 2,
+            zIndex:10,
+            bgcolor: "background.paper",
+            borderTop: `1px solid ${theme.palette.divider}`,
+            display: "flex",
+            gap: 2,
+            boxShadow: "0 -2px 10px rgba(0,0,0,0.08)",
+          }}
+        >
+          <Button fullWidth variant="outlined" onClick={() => navigate(-1)}>
+            Cancel
+          </Button>
+          <Button
+            fullWidth
+            variant="contained"
+            disableElevation
+            onClick={handleSubmit}
+          >
+            Save
+          </Button>
         </Box>
-      ) : (
-        <>
-          {/* Mobile Content */}
-          <Box
-            sx={{
-              flex: 1,
-              px: 2,
-              pb: 12,
-              maxWidth: 700,
-              mx: "auto",
-              width: "100%",
-            }}
-          >
-            {content}
-          </Box>
-
-          {/* Mobile Bottom Action Bar */}
-          <Box
-            sx={{
-              position: "fixed",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              p: 2,
-              display: "flex",
-              gap: 2,
-              bgcolor: "background.paper",
-              borderTop: "1px solid",
-              borderColor: "divider",
-            }}
-          >
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={() => navigate("/")}
-            >
-              Cancel
-            </Button>
-
-            <Button fullWidth variant="contained" onClick={handleSubmit}>
-              Save
-            </Button>
-          </Box>
-        </>
       )}
     </Box>
   );
