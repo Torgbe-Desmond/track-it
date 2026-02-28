@@ -41,7 +41,7 @@ const MainTaskList = () => {
   const { tasks, toggleComplete } = useTasks();
   const navigate = useNavigate();
   const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up("md")); // changed to md for better tablet experience
+  const isDesktop = useMediaQuery(theme.breakpoints.up("md")); 
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [filter, setFilter] = useState("All");
@@ -346,10 +346,9 @@ const MainTaskList = () => {
                 border: `1px solid ${theme.palette.divider}`,
                 transition: "all 0.15s ease",
                 bgcolor: task.completed
-                  ? alpha(theme.palette.action.selected, 0.4)
+                  ? alpha(theme.palette.action.selected, 0.1)
                   : "background.paper",
                 "&:hover": {
-                  borderColor: "primary.main",
                   transform: "translateY(-1px)",
                   boxShadow: theme.shadows[2],
                 },
