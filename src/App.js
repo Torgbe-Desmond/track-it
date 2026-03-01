@@ -16,7 +16,7 @@ const theme = createTheme({ palette: { primary: { main: '#1976d2' } } });
 function App() {
 
   const  themeColorMeta = document.querySelector("meta[name='theme-color']")
-  themeColorMeta.setAttribute("content","#1976d2")
+  themeColorMeta.setAttribute("content","#FFFF")
 
   return (
     <ThemeProvider theme={theme}>
