@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import { useTasks } from "../hooks/useTasks";
+import { useParams, useNavigate } from "react-router-dom";
+import { useCategoriesAndTasks } from "../hooks/useCategoriesAndTasks";
 import {
   AppBar,
   Toolbar,
@@ -22,12 +22,14 @@ import {
   useTheme,
   useMediaQuery,
   alpha,
+  Button,
 } from "@mui/material";
 
 import MenuIcon from "@mui/icons-material/Menu";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 const drawerWidth = 260;
 
@@ -38,20 +40,26 @@ const priorityColors = {
 };
 
 const MainTaskList = () => {
-  const { tasks, toggleComplete } = useTasks();
+  const { categoryId } = useParams();
+  const { categories, toggleComplete } = useCategoriesAndTasks();
   const navigate = useNavigate();
   const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up("md")); 
-
+  const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [filter, setFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
 
-  // ────────────────────────────────────────────────
-  // Filtering (unchanged logic)
-  // ────────────────────────────────────────────────
+  const filters = ["All", "Active", "Completed", "Today", "Overdue"];
+  const priorities = ["All", "Low", "Medium", "High"];
+
+  const category = categories.find((c) => c.id === categoryId);
+
+  const tasks = useMemo(() => {
+    return category.tasks || [];
+  }, [category]);
+
   const filteredTasks = useMemo(() => {
     return tasks
       .filter((task) => {
@@ -84,16 +92,64 @@ const MainTaskList = () => {
       );
   }, [tasks, search, filter, priorityFilter]);
 
-  const filters = ["All", "Active", "Completed", "Today", "Overdue"];
-  const priorities = ["All", "Low", "Medium", "High"];
+  if (!category) {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          p: 4,
+          textAlign: "center",
+        }}
+      >
+        <Box>
+          <Typography variant="h5" gutterBottom color="error">
+            Category not found
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate("/")}
+            sx={{ mt: 2 }}
+          >
+            Back to Categories
+          </Button>
+        </Box>
+      </Box>
+    );
+  }
+
+  // ────────────────────────────────────────────────
+  // Filtering logic (unchanged)
 
   const drawerContent = (
     <Box sx={{ width: drawerWidth, pt: 2 }}>
+      {/* Category header with back button */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          px: 3,
+          py: 2,
+          borderBottom: `1px solid ${theme.palette.divider}`,
+        }}
+      >
+        <IconButton onClick={() => navigate("/")} edge="start" sx={{ mr: 1.5 }}>
+          <ArrowBackIcon />
+        </IconButton>
+        <Typography variant="h6" noWrap sx={{ fontWeight: 600 }}>
+          {category.name}
+        </Typography>
+      </Box>
+
       <Typography
         variant="subtitle2"
         sx={{
           px: 3,
           pb: 1,
+          pt: 2,
           color: "text.secondary",
           fontWeight: 600,
           letterSpacing: 0.5,
@@ -186,7 +242,7 @@ const MainTaskList = () => {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      {/* ─── App Bar ──────────────────────────────────────────────── */}
+      {/* App Bar */}
       <AppBar
         position="fixed"
         elevation={0}
@@ -217,7 +273,7 @@ const MainTaskList = () => {
               letterSpacing: "-0.015em",
             }}
           >
-            Task Tracker
+            {category.name}
           </Typography>
 
           {isDesktop ? (
@@ -283,7 +339,7 @@ const MainTaskList = () => {
         )}
       </AppBar>
 
-      {/* ─── Drawer ───────────────────────────────────────────────── */}
+      {/* Drawer */}
       <Drawer
         variant={isDesktop ? "permanent" : "temporary"}
         open={isDesktop || mobileOpen}
@@ -302,7 +358,7 @@ const MainTaskList = () => {
         {drawerContent}
       </Drawer>
 
-      {/* ─── Main Content ─────────────────────────────────────────── */}
+      {/* Main Content */}
       <Box
         component="main"
         sx={{
@@ -357,13 +413,15 @@ const MainTaskList = () => {
               <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
                 <Checkbox
                   checked={task.completed}
-                  onChange={() => toggleComplete(task.id)}
+                  onChange={() => toggleComplete(categoryId, task.id)}
                   sx={{ mt: 0.3 }}
                 />
 
                 <Box
                   sx={{ flex: 1, cursor: "pointer" }}
-                  onClick={() => navigate(`/tasks/${task.id}`)}
+                  onClick={() =>
+                    navigate(`/categories/${categoryId}/tasks/${task.id}`)
+                  }
                 >
                   <Typography
                     variant="subtitle1"
@@ -442,7 +500,7 @@ const MainTaskList = () => {
         )}
       </Box>
 
-      {/* ─── Floating Action Button ──────────────────────────────── */}
+      {/* Floating Action Button */}
       <Fab
         color="primary"
         aria-label="add task"
@@ -452,7 +510,7 @@ const MainTaskList = () => {
           right: 24,
           boxShadow: theme.shadows[4],
         }}
-        onClick={() => navigate("/tasks/add")}
+        onClick={() => navigate(`/categories/${categoryId}/tasks/add`)}
       >
         <AddIcon />
       </Fab>

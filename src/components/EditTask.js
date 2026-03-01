@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useTasks } from "../hooks/useTasks";
+import { useCategoriesAndTasks } from "../hooks/useCategoriesAndTasks";
 import {
   Dialog,
   DialogTitle,
@@ -28,13 +28,14 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import dayjs from "dayjs";
 
 const EditTask = () => {
-  const { id } = useParams();
-  const { tasks, updateTask, deleteTask } = useTasks(); // assuming deleteTask exists
+  const { categoryId, id: taskId } = useParams();
+  const { categories, updateTask, deleteTask } = useCategoriesAndTasks();
   const navigate = useNavigate();
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
 
-  const task = tasks.find((t) => t.id === id);
+  const category = categories.find((c) => c.id === categoryId);
+  const task = category?.tasks?.find((t) => t.id === taskId);
 
   const [form, setForm] = useState(null);
   const [error, setError] = useState("");
@@ -90,7 +91,7 @@ const EditTask = () => {
       return;
     }
 
-    updateTask(id, {
+    updateTask(categoryId, taskId, {
       title: form.title.trim(),
       description: form.description.trim() || undefined,
       dueDate: form.dueDate ? form.dueDate.toISOString() : null,
@@ -98,15 +99,13 @@ const EditTask = () => {
       tags: form.tags.length > 0 ? form.tags : undefined,
     });
 
-    navigate(`/tasks/${id}`);
+    navigate(`/categories/${categoryId}/tasks/${taskId}`);
   };
 
   const handleDelete = () => {
-    if (deleteTask) {
-      deleteTask(id);
-      setDeleteConfirmOpen(false);
-      navigate("/");
-    }
+    deleteTask(categoryId, taskId);
+    setDeleteConfirmOpen(false);
+    navigate(`/categories/${categoryId}`);
   };
 
   const formContent = (
@@ -213,7 +212,7 @@ const EditTask = () => {
           open
           maxWidth="sm"
           fullWidth
-          onClose={() => navigate(`/tasks/${id}`)}
+          onClose={() => navigate(`/categories/${categoryId}/tasks/${taskId}`)}
           PaperProps={{
             sx: { borderRadius: 3, overflow: "hidden" },
           }}
@@ -238,7 +237,10 @@ const EditTask = () => {
               Delete
             </Button>
 
-            <Button onClick={() => navigate(`/tasks/${id}`)} color="inherit">
+            <Button
+              onClick={() => navigate(`/categories/${categoryId}/tasks/${taskId}`)}
+              color="inherit"
+            >
               Cancel
             </Button>
 
@@ -308,7 +310,7 @@ const EditTask = () => {
           }}
         >
           <IconButton
-            onClick={() => navigate(`/tasks/${id}`)}
+            onClick={() => navigate(`/categories/${categoryId}/tasks/${taskId}`)}
             edge="start"
             sx={{ mr: 1.5 }}
           >

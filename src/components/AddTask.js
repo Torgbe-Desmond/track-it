@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useTasks } from "../hooks/useTasks";
+import { useParams, useNavigate } from "react-router-dom";
+import { useCategoriesAndTasks } from "../hooks/useCategoriesAndTasks";
 import {
   Dialog,
   DialogTitle,
@@ -27,7 +27,8 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 const AddTask = ({ open, onClose }) => {
-  const { addTask } = useTasks();
+  const { categoryId } = useParams(); // ← now reads category from URL
+  const { addTask } = useCategoriesAndTasks(); // ← updated hook
   const navigate = useNavigate();
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
@@ -62,7 +63,7 @@ const AddTask = ({ open, onClose }) => {
       return;
     }
 
-    addTask({
+    addTask(categoryId, {
       title: form.title.trim(),
       description: form.description.trim() || undefined,
       dueDate: form.dueDate ? form.dueDate.toISOString() : null,
@@ -83,7 +84,7 @@ const AddTask = ({ open, onClose }) => {
     if (isModal) {
       onClose();
     } else {
-      navigate(-1);
+      navigate(-1); // or navigate(`/categories/${categoryId}`)
     }
   };
 
@@ -323,7 +324,7 @@ const AddTask = ({ open, onClose }) => {
             left: 0,
             right: 0,
             p: 2,
-            zIndex:10,
+            zIndex: 10,
             bgcolor: "background.paper",
             borderTop: `1px solid ${theme.palette.divider}`,
             display: "flex",

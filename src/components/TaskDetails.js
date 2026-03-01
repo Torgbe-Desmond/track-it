@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useTasks } from "../hooks/useTasks";
+import { useCategoriesAndTasks } from "../hooks/useCategoriesAndTasks"; // updated hook
 import {
   Box,
   Typography,
@@ -34,15 +34,16 @@ const priorityColors = {
 };
 
 const TaskDetails = () => {
-  const { id } = useParams();
-  const { tasks, toggleComplete, deleteTask } = useTasks();
+  const { categoryId, id: taskId } = useParams();
+  const { categories, toggleComplete, deleteTask } = useCategoriesAndTasks();
   const navigate = useNavigate();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md")); // using md for better tablet support
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
-  const task = tasks.find((t) => t.id === id);
+  const category = categories.find((c) => c.id === categoryId);
+  const task = category?.tasks?.find((t) => t.id === taskId);
 
   if (!task) {
     return (
@@ -70,9 +71,9 @@ const TaskDetails = () => {
     : "No due date";
 
   const handleDelete = () => {
-    deleteTask(id);
+    deleteTask(categoryId, taskId);
     setDeleteConfirmOpen(false);
-    navigate("/");
+    navigate(`/categories/${categoryId}`);
   };
 
   return (
@@ -82,7 +83,7 @@ const TaskDetails = () => {
         bgcolor: "background.default",
         display: "flex",
         flexDirection: "column",
-        pb:6
+        pb: 6,
       }}
     >
       {/* Header */}
@@ -104,7 +105,7 @@ const TaskDetails = () => {
           }}
         >
           <IconButton
-            onClick={() => navigate("/")}
+            onClick={() => navigate(`/categories/${categoryId}`)}
             edge="start"
             sx={{ mr: 1.5 }}
           >
@@ -153,7 +154,7 @@ const TaskDetails = () => {
               <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                 <Checkbox
                   checked={task.completed}
-                  onChange={() => toggleComplete(id)}
+                  onChange={() => toggleComplete(categoryId, taskId)}
                   color="success"
                   size="medium"
                   sx={{ p: 0.5 }}
@@ -283,7 +284,7 @@ const TaskDetails = () => {
             fullWidth
             variant="outlined"
             startIcon={<EditIcon />}
-            onClick={() => navigate(`/tasks/${id}/edit`)}
+            onClick={() => navigate(`/categories/${categoryId}/tasks/${taskId}/edit`)}
           >
             Edit
           </Button>
@@ -315,7 +316,7 @@ const TaskDetails = () => {
             variant="contained"
             startIcon={<EditIcon />}
             disableElevation
-            onClick={() => navigate(`/tasks/${id}/edit`)}
+            onClick={() => navigate(`/categories/${categoryId}/tasks/${taskId}/edit`)}
             sx={{ minWidth: 140 }}
           >
             Edit Task
