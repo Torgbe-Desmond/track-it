@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useCategoriesAndTasks } from "../hooks/CategoriesContext"; // ✅ use context version
 import {
   Dialog,
   DialogTitle,
@@ -24,15 +25,16 @@ import {
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { useCategoriesAndTasks } from "../hooks/CategoriesContext";
 
 const AddTask = ({ open, onClose }) => {
-  const { categoryId } = useParams(); // ← now reads category from URL
-  const { addTask } = useCategoriesAndTasks(); // ← updated hook
+  const { categoryId } = useParams();
+  const { categories, addTask } = useCategoriesAndTasks(); 
   const navigate = useNavigate();
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
   const isModal = !!onClose;
+
+  const categoryExists = categories.some((c) => c.id === categoryId);
 
   const [form, setForm] = useState({
     title: "",
@@ -63,6 +65,11 @@ const AddTask = ({ open, onClose }) => {
       return;
     }
 
+    if (!categoryExists) {
+      setError("Category not found");
+      return;
+    }
+
     addTask(categoryId, {
       title: form.title.trim(),
       description: form.description.trim() || undefined,
@@ -79,14 +86,32 @@ const AddTask = ({ open, onClose }) => {
       priority: "medium",
       tags: [],
     });
+
     setError("");
 
     if (isModal) {
       onClose();
     } else {
-      navigate(-1); // or navigate(`/categories/${categoryId}`)
+      navigate(`/categories/${categoryId}`);
     }
   };
+
+  // Optional safety: if category doesn't exist
+  if (!categoryExists) {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          p: 4,
+        }}
+      >
+        <Alert severity="error">Category not found</Alert>
+      </Box>
+    );
+  }
 
   const formContent = (
     <Stack spacing={3}>
@@ -127,7 +152,7 @@ const AddTask = ({ open, onClose }) => {
           gap: 2.5,
         }}
       >
-        <FormControl fullWidth variant="outlined">
+        <FormControl fullWidth>
           <InputLabel id="priority-label">Priority</InputLabel>
           <Select
             labelId="priority-label"
@@ -176,7 +201,7 @@ const AddTask = ({ open, onClose }) => {
           <TextField
             {...params}
             label="Tags"
-            placeholder="Type and press enter (e.g. work, urgent)"
+            placeholder="Type and press enter"
             helperText="Separate tags with Enter"
             variant="outlined"
           />
@@ -188,35 +213,12 @@ const AddTask = ({ open, onClose }) => {
   // ─── MODAL MODE ───────────────────────────────────────────────
   if (isModal) {
     return (
-      <Dialog
-        open={open}
-        onClose={onClose}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: { borderRadius: 3, overflow: "hidden" },
-        }}
-      >
-        <DialogTitle sx={{ pb: 1, pt: 3, px: 3 }}>
-          <Typography variant="h6" fontWeight={600}>
-            New Task
-          </Typography>
-        </DialogTitle>
-
-        <DialogContent dividers sx={{ px: 3, py: 3 }}>
-          {formContent}
-        </DialogContent>
-
-        <DialogActions sx={{ px: 3, py: 2.5 }}>
-          <Button onClick={onClose} color="inherit">
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            disableElevation
-            onClick={handleSubmit}
-            sx={{ minWidth: 100 }}
-          >
+      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+        <DialogTitle>New Task</DialogTitle>
+        <DialogContent dividers>{formContent}</DialogContent>
+        <DialogActions>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="contained" onClick={handleSubmit}>
             Save Task
           </Button>
         </DialogActions>
@@ -226,37 +228,10 @@ const AddTask = ({ open, onClose }) => {
 
   // ─── FULL PAGE MODE ───────────────────────────────────────────
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        bgcolor: "background.default",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {/* Header */}
-      <Box
-        sx={{
-          borderBottom: `1px solid ${theme.palette.divider}`,
-          bgcolor: "background.paper",
-          position: "sticky",
-          top: 0,
-          zIndex: theme.zIndex.appBar,
-        }}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            px: { xs: 2, sm: 4 },
-            py: 2,
-          }}
-        >
-          <IconButton
-            onClick={() => navigate(-1)}
-            edge="start"
-            sx={{ mr: 1.5 }}
-          >
+    <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+      <Box sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
+        <Box sx={{ display: "flex", alignItems: "center", p: 2 }}>
+          <IconButton onClick={() => navigate(`/categories/${categoryId}`)}>
             <ArrowBackIcon />
           </IconButton>
           <Typography variant="h6" fontWeight={600}>
@@ -265,86 +240,21 @@ const AddTask = ({ open, onClose }) => {
         </Box>
       </Box>
 
-      {/* Form Content */}
-      <Box
-        sx={{
-          flex: 1,
-          px: { xs: 2, sm: 4 },
-          py: { xs: 3, md: 5 },
-          maxWidth: 780,
-          mx: "auto",
-          width: "100%",
-        }}
-      >
-        <Paper
-          elevation={isDesktop ? 2 : 0}
-          sx={{
-            p: { xs: 3, md: 5 },
-            borderRadius: 3,
-            bgcolor: "background.paper",
-          }}
-        >
-          {formContent}
+      <Box sx={{ p: 3, maxWidth: 700, mx: "auto" }}>
+        <Paper sx={{ p: 4 }}>{formContent}</Paper>
 
-          {isDesktop && (
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: 2,
-                mt: 5,
-              }}
-            >
-              <Button
-                variant="outlined"
-                onClick={() => navigate(-1)}
-                sx={{ minWidth: 110 }}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="contained"
-                disableElevation
-                onClick={handleSubmit}
-                sx={{ minWidth: 110 }}
-              >
-                Save Task
-              </Button>
-            </Box>
-          )}
-        </Paper>
-      </Box>
-
-      {/* Mobile fixed bottom bar */}
-      {!isDesktop && (
-        <Box
-          sx={{
-            position: "fixed",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            p: 2,
-            zIndex: 10,
-            bgcolor: "background.paper",
-            borderTop: `1px solid ${theme.palette.divider}`,
-            display: "flex",
-            gap: 2,
-            boxShadow: "0 -2px 10px rgba(0,0,0,0.08)",
-          }}
-        >
-          <Button fullWidth variant="outlined" onClick={() => navigate(-1)}>
+        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}>
+          <Button
+            variant="outlined"
+            onClick={() => navigate(`/categories/${categoryId}`)}
+          >
             Cancel
           </Button>
-          <Button
-            fullWidth
-            variant="contained"
-            disableElevation
-            onClick={handleSubmit}
-          >
-            Save
+          <Button variant="contained" onClick={handleSubmit}>
+            Save Task
           </Button>
         </Box>
-      )}
+      </Box>
     </Box>
   );
 };
