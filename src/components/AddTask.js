@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useCategoriesAndTasks } from "../hooks/useCategoriesAndTasks";
 import {
   Dialog,
   DialogTitle,
@@ -25,6 +24,7 @@ import {
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { useCategoriesAndTasks } from "../hooks/CategoriesContext";
 
 const AddTask = ({ open, onClose }) => {
   const { categoryId } = useParams(); // ← now reads category from URL

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useCategoriesAndTasks } from "../hooks/useCategoriesAndTasks";
+import { useCategoriesAndTasks } from "../hooks/CategoriesContext";
 import {
   Dialog,
   DialogTitle,

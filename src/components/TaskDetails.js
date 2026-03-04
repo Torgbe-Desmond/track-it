@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useCategoriesAndTasks } from "../hooks/useCategoriesAndTasks"; // updated hook
+import { useCategoriesAndTasks } from "../hooks/CategoriesContext";
 import {
   Box,
   Typography,
@@ -44,7 +44,7 @@ const TaskDetails = () => {
 
   const category = categories.find((c) => c.id === categoryId);
   const task = category?.tasks?.find((t) => t.id === taskId);
-
+  
   if (!task) {
     return (
       <Box

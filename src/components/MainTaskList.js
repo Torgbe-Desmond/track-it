@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useCategoriesAndTasks } from "../hooks/useCategoriesAndTasks";
+import { useCategoriesAndTasks } from "../hooks/CategoriesContext";
 import {
   AppBar,
   Toolbar,
@@ -57,7 +57,7 @@ const MainTaskList = () => {
   const category = categories.find((c) => c.id === categoryId);
 
   const tasks = useMemo(() => {
-    return category.tasks || [];
+    return category?.tasks || [];
   }, [category]);
 
   const filteredTasks = useMemo(() => {
