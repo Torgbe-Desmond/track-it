@@ -4,6 +4,11 @@ import TaskBoard from './pages/TaskBoard';
 import EditTask from './components/EditTask';
 
 const App = () => {
+  const themeColorMeta = document.querySelector("meta[name='theme-color']");
+  if (themeColorMeta) {
+    themeColorMeta.setAttribute("content", "#FFFFFF");
+  }
+
   return (
     <BrowserRouter>
       <Routes>
