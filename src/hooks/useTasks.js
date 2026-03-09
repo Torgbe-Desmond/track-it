@@ -1,38 +1,35 @@
-import { useState, useEffect } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../db/db';
 
-export const useTasks = () => {
-  const [tasks, setTasks] = useState(() => {
-    const saved = localStorage.getItem('tasks');
-    return saved ? JSON.parse(saved, (key, value) => {
-      if (key === 'dueDate' && value) return new Date(value);
-      return value;
-    }) : [];
+// --- TASK HOOKS & FUNCTIONS ---
+export const useTasks = (categoryId) =>
+  useLiveQuery(() => db.tasks.where('categoryId').equals(parseInt(categoryId)).toArray(), [categoryId]);
+
+export const useTaskById = (id) =>
+  useLiveQuery(() => db.tasks.get(parseInt(id)), [id]);
+
+export const addTask = async (task) =>
+  db.tasks.add({ ...task, createdAt: Date.now(), completed: false });
+
+export const updateTask = async (id, data) =>
+  db.tasks.update(parseInt(id), data);
+
+export const toggleTask = async (id, currentStatus) =>
+  db.tasks.update(parseInt(id), { completed: !currentStatus });
+
+export const deleteTask = async (id) =>
+  db.tasks.delete(parseInt(id));
+
+// --- CATEGORY HOOKS & FUNCTIONS ---
+export const useCategories = () => useLiveQuery(() => db.categories.toArray());
+
+export const addCategory = async (name) => db.categories.add({ name });
+
+export const updateCategory = async (id, name) =>
+  db.categories.update(parseInt(id), { name });
+
+export const deleteCategory = async (id) =>
+  db.transaction('rw', db.categories, db.tasks, async () => {
+    await db.tasks.where('categoryId').equals(parseInt(id)).delete();
+    await db.categories.delete(parseInt(id));
   });
-
-  useEffect(() => {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-  }, [tasks]);
-
-  const addTask = (newTask) => {
-    setTasks(prev => [...prev, { id: uuidv4(), completed: false, ...newTask }]);
-  };
-
-  const updateTask = (id, updates) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
-  };
-
-  const deleteTask = (id) => {
-    setTasks(prev => prev.filter(t => t.id !== id));
-  };
-
-  const toggleComplete = (id) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
-  };
-
-  const reorderTasks = (newOrder) => {
-    setTasks(newOrder);
-  };
-
-  return { tasks, addTask, updateTask, deleteTask, toggleComplete, reorderTasks };
-};

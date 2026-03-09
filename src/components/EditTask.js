@@ -1,52 +1,41 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useCategoriesAndTasks } from "../hooks/useCategoriesAndTasks";
+import { useTaskById, updateTask, deleteTask } from "../hooks/useTasks";
+
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  Stack,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
   Box,
   Typography,
-  useMediaQuery,
-  useTheme,
-  Autocomplete,
-  Alert,
+  TextField,
+  Button,
   IconButton,
+  CircularProgress,
+  Alert,
+  Stack,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Autocomplete,
 } from "@mui/material";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import dayjs from "dayjs";
 
-const EditTask = () => {
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+
+export default function EditTask() {
   const { categoryId, id: taskId } = useParams();
-  const { categories, updateTask, deleteTask } = useCategoriesAndTasks();
   const navigate = useNavigate();
-  const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
-
-  const category = categories.find((c) => c.id === categoryId);
-  const task = category?.tasks?.find((t) => t.id === taskId);
+  const task = useTaskById(taskId);
 
   const [form, setForm] = useState(null);
   const [error, setError] = useState("");
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (task) {
       setForm({
-        title: task.title,
+        title: task.title || "",
         description: task.description || "",
-        dueDate: task.dueDate ? dayjs(task.dueDate) : null,
+        dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
         priority: task.priority || "medium",
         tags: task.tags || [],
       });
@@ -55,354 +44,163 @@ const EditTask = () => {
 
   if (!task || !form) {
     return (
-      <Box
-        sx={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          p: 4,
-          color: "text.secondary",
-        }}
-      >
-        <Typography variant="body1">
-          {task ? "Loading task..." : "Task not found"}
-        </Typography>
+      <Box sx={{ display: "grid", placeItems: "center", minHeight: "60vh" }}>
+        <CircularProgress size={36} />
       </Box>
     );
   }
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleDateChange = (newValue) => {
-    setForm((prev) => ({ ...prev, dueDate: newValue }));
-  };
-
-  const handleTagsChange = (event, newValue) => {
-    setForm((prev) => ({ ...prev, tags: newValue }));
-  };
-
-  const handleSubmit = () => {
+  const handleSave = async () => {
     if (!form.title.trim()) {
-      setError("Task title is required");
+      setError("Title is required");
       return;
     }
 
-    updateTask(categoryId, taskId, {
-      title: form.title.trim(),
-      description: form.description.trim() || undefined,
-      dueDate: form.dueDate ? form.dueDate.toISOString() : null,
-      priority: form.priority,
-      tags: form.tags.length > 0 ? form.tags : undefined,
-    });
+    setSaving(true);
+    setError("");
 
-    navigate(`/categories/${categoryId}/tasks/${taskId}`);
+    try {
+      await updateTask(taskId, {
+        title: form.title.trim(),
+        description: form.description.trim() || undefined,
+        dueDate: form.dueDate || null,
+        priority: form.priority,
+        tags: form.tags.length ? form.tags : undefined,
+      });
+      navigate(`/tasks/${categoryId}`);
+    } catch {
+      setError("Failed to save changes");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDelete = () => {
-    deleteTask(categoryId, taskId);
-    setDeleteConfirmOpen(false);
-    navigate(`/categories/${categoryId}`);
+  const handleDelete = async () => {
+    if (!window.confirm("Delete this task permanently?")) return;
+
+    setSaving(true);
+    try {
+      await deleteTask(taskId);
+      navigate(`/tasks/${categoryId}`);
+    } catch {
+      setError("Failed to delete task");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const formContent = (
-    <Stack spacing={3}>
+  return (
+    <Box
+      sx={{
+        p: { xs: 2, sm: 3 },
+        maxWidth: 640,
+        mx: "auto",
+        pb: { xs: 8, sm: 6 }, // better mobile bottom space
+      }}
+    >
+      {/* Header */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>
+        <IconButton
+          onClick={() => navigate(-1)}
+          edge="start"
+          size="medium"
+          sx={{ color: "text.secondary" }}
+        >
+          <ArrowBackRoundedIcon />
+        </IconButton>
+        <Typography variant="h6" component="h1" fontWeight={600}>
+          Edit Task
+        </Typography>
+      </Box>
+
       {error && (
-        <Alert severity="error" sx={{ borderRadius: 2 }}>
+        <Alert severity="error" sx={{ mb: 3 }} variant="outlined">
           {error}
         </Alert>
       )}
 
-      <TextField
-        label="Task Title"
-        name="title"
-        value={form.title}
-        onChange={handleChange}
-        fullWidth
-        required
-        variant="outlined"
-        error={!!error && !form.title.trim()}
-        helperText={error && !form.title.trim() ? "This field is required" : ""}
-      />
-
-      <TextField
-        label="Description (optional)"
-        name="description"
-        value={form.description}
-        onChange={handleChange}
-        multiline
-        rows={4}
-        fullWidth
-        variant="outlined"
-      />
-
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: { xs: "column", sm: "row" },
-          gap: 2.5,
-        }}
-      >
-        <FormControl fullWidth variant="outlined">
-          <InputLabel id="priority-label">Priority</InputLabel>
-          <Select
-            labelId="priority-label"
-            name="priority"
-            value={form.priority}
-            label="Priority"
-            onChange={handleChange}
-          >
-            <MenuItem value="low">Low</MenuItem>
-            <MenuItem value="medium">Medium</MenuItem>
-            <MenuItem value="high">High</MenuItem>
-          </Select>
-        </FormControl>
-
-        <DatePicker
-          label="Due Date (optional)"
-          value={form.dueDate}
-          onChange={handleDateChange}
-          slotProps={{
-            textField: {
-              fullWidth: true,
-              variant: "outlined",
-            },
-          }}
+      <Stack spacing={2.5}>
+        <TextField
+          label="Title"
+          value={form.title}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          fullWidth
+          autoFocus
+          variant="outlined"
+          size="medium"
         />
-      </Box>
 
-      <Autocomplete
-        multiple
-        freeSolo
-        options={[]}
-        value={form.tags}
-        onChange={handleTagsChange}
-        renderTags={(value, getTagProps) =>
-          value.map((option, index) => (
-            <Chip
-              variant="outlined"
-              size="small"
-              label={option}
-              {...getTagProps({ index })}
-              key={index}
-            />
-          ))
-        }
-        renderInput={(params) => (
+        <TextField
+          label="Description (optional)"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          multiline
+          minRows={3}
+          fullWidth
+          variant="outlined"
+        />
+
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+          <FormControl fullWidth size="medium">
+            <InputLabel>Priority</InputLabel>
+            <Select
+              value={form.priority}
+              label="Priority"
+              onChange={(e) => setForm({ ...form, priority: e.target.value })}
+            >
+              <MenuItem value="low">Low</MenuItem>
+              <MenuItem value="medium">Medium</MenuItem>
+              <MenuItem value="high">High</MenuItem>
+            </Select>
+          </FormControl>
+
           <TextField
-            {...params}
-            label="Tags"
-            placeholder="Type and press enter (e.g. work, urgent)"
-            helperText="Separate tags with Enter"
-            variant="outlined"
+            label="Due Date"
+            type="date"
+            value={form.dueDate}
+            onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+            InputLabelProps={{ shrink: true }}
+            fullWidth
           />
-        )}
-      />
-    </Stack>
-  );
+        </Stack>
 
-  // ─── DESKTOP ──────────────────────────────────────────────────
-  if (isDesktop) {
-    return (
-      <>
-        <Dialog
-          open
-          maxWidth="sm"
-          fullWidth
-          onClose={() => navigate(`/categories/${categoryId}/tasks/${taskId}`)}
-          PaperProps={{
-            sx: { borderRadius: 3, overflow: "hidden" },
-          }}
-        >
-          <DialogTitle sx={{ pb: 1, pt: 3, px: 3 }}>
-            <Typography variant="h6" fontWeight={600}>
-              Edit Task
-            </Typography>
-          </DialogTitle>
+        <Autocomplete
+          multiple
+          freeSolo
+          value={form.tags}
+          onChange={(_, newTags) => setForm({ ...form, tags: newTags })}
+          options={[]}
+          renderInput={(params) => (
+            <TextField {...params} label="Tags (press enter)" />
+          )}
+        />
+      </Stack>
 
-          <DialogContent dividers sx={{ px: 3, py: 3 }}>
-            {formContent}
-          </DialogContent>
-
-          <DialogActions sx={{ px: 3, py: 2.5, gap: 1.5 }}>
-            <Button
-              color="error"
-              startIcon={<DeleteOutlineIcon />}
-              onClick={() => setDeleteConfirmOpen(true)}
-              sx={{ mr: "auto" }}
-            >
-              Delete
-            </Button>
-
-            <Button
-              onClick={() => navigate(`/categories/${categoryId}/tasks/${taskId}`)}
-              color="inherit"
-            >
-              Cancel
-            </Button>
-
-            <Button
-              variant="contained"
-              disableElevation
-              onClick={handleSubmit}
-              sx={{ minWidth: 100 }}
-            >
-              Update
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Delete Confirmation */}
-        <Dialog
-          open={deleteConfirmOpen}
-          onClose={() => setDeleteConfirmOpen(false)}
-          maxWidth="xs"
-          fullWidth
-        >
-          <DialogTitle>Delete Task?</DialogTitle>
-          <DialogContent>
-            <Typography>
-              This action cannot be undone. The task will be permanently removed.
-            </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDeleteConfirmOpen(false)}>
-              Cancel
-            </Button>
-            <Button color="error" variant="contained" onClick={handleDelete}>
-              Delete
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </>
-    );
-  }
-
-  // ─── MOBILE ───────────────────────────────────────────────────
-  return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        bgcolor: "background.default",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {/* Header */}
-      <Box
-        sx={{
-          borderBottom: `1px solid ${theme.palette.divider}`,
-          bgcolor: "background.paper",
-          position: "sticky",
-          top: 0,
-          zIndex: theme.zIndex.appBar,
-        }}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            px: { xs: 2, sm: 4 },
-            py: 2,
-          }}
-        >
-          <IconButton
-            onClick={() => navigate(`/categories/${categoryId}/tasks/${taskId}`)}
-            edge="start"
-            sx={{ mr: 1.5 }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h6" fontWeight={600}>
-            Edit Task
-          </Typography>
-        </Box>
-      </Box>
-
-      {/* Form */}
-      <Box
-        sx={{
-          flex: 1,
-          px: { xs: 2, sm: 4 },
-          py: { xs: 3, md: 5 },
-          maxWidth: 780,
-          mx: "auto",
-          width: "100%",
-        }}
-      >
-        <Box
-          sx={{
-            p: { xs: 3, md: 5 },
-            borderRadius: 3,
-            bgcolor: "background.paper",
-          }}
-        >
-          {formContent}
-        </Box>
-      </Box>
-
-      {/* Bottom bar */}
-      <Box
-        sx={{
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          p: 2,
-          bgcolor: "background.paper",
-          borderTop: `1px solid ${theme.palette.divider}`,
-          display: "flex",
-          gap: 2,
-          boxShadow: "0 -2px 10px rgba(0,0,0,0.08)",
-        }}
+      <Stack
+        direction="row"
+        spacing={2}
+        justifyContent="flex-end"
+        sx={{ mt: 5 }}
       >
         <Button
-          fullWidth
-          color="error"
           variant="outlined"
-          startIcon={<DeleteOutlineIcon />}
-          onClick={() => setDeleteConfirmOpen(true)}
+          color="error"
+          startIcon={<DeleteOutlineRoundedIcon />}
+          onClick={handleDelete}
+          disabled={saving}
         >
           Delete
         </Button>
 
         <Button
-          fullWidth
           variant="contained"
           disableElevation
-          onClick={handleSubmit}
+          onClick={handleSave}
+          disabled={saving}
         >
-          Update
+          {saving ? "Saving…" : "Save"}
         </Button>
-      </Box>
-
-      {/* Delete Confirmation */}
-      <Dialog
-        open={deleteConfirmOpen}
-        onClose={() => setDeleteConfirmOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>Delete Task?</DialogTitle>
-        <DialogContent>
-          <Typography>
-            This action cannot be undone. The task will be permanently removed.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteConfirmOpen(false)}>
-            Cancel
-          </Button>
-          <Button color="error" variant="contained" onClick={handleDelete}>
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
+      </Stack>
     </Box>
   );
-};
-
-export default EditTask;
+}
