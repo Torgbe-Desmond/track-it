@@ -55,7 +55,7 @@ export default function FileEditorPage() {
     return () => {
       isCancelled = true;
     };
-  }, [fileId, getFile, navigate]);
+  }, [fileId]);
 
   const handleSave = async () => {
     // Pass an object with the 'content' key

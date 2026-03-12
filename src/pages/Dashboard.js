@@ -26,8 +26,13 @@ export default function Dashboard() {
   const theme = useTheme();
   const navigate = useNavigate();
 
-  const { directories, fetchDirectories, addDirectory, updateDirectory, deleteDirectory } =
-    useDexieFileSystem();
+  const {
+    directories,
+    fetchDirectories,
+    addDirectory,
+    updateDirectory,
+    deleteDirectory,
+  } = useDexieFileSystem();
 
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
@@ -78,7 +83,11 @@ export default function Dashboard() {
 
   // Delete project
   const handleDeleteProject = async (id) => {
-    if (!window.confirm("Delete this project and all its contents? This cannot be undone.")) {
+    if (
+      !window.confirm(
+        "Delete this project and all its contents? This cannot be undone.",
+      )
+    ) {
       return;
     }
 
@@ -87,18 +96,20 @@ export default function Dashboard() {
   };
 
   return (
-    <Container maxWidth="md" sx={{ pb: 10 }}>
+    <Container maxWidth="md" disableGutters sx={{ pb: { xs: 10, sm: 6 } }}>
       {/* Header */}
       <Box
         sx={{
-          pt: 4,
-          pb: 3,
-          px: 2,
-          borderBottom: `1px solid ${theme.palette.divider}`,
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
+          px: { xs: 2, sm: 3 },
+          py: { xs: 2, sm: 3 },
           position: "sticky",
           top: 0,
           bgcolor: "background.default",
           zIndex: 10,
+          borderBottom: `1px solid ${theme.palette.divider}`,
         }}
       >
         <Typography variant="h5" fontWeight={700} component="h1">
@@ -147,7 +158,14 @@ export default function Dashboard() {
                 }}
                 onClick={() => navigate(`/folder/${project.id}`)}
               >
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1.5,
+                    minWidth: 0,
+                  }}
+                >
                   <FolderRoundedIcon
                     sx={{ fontSize: 34, color: "primary.main", flexShrink: 0 }}
                   />
