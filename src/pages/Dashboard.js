@@ -1,153 +1,191 @@
-import { useState } from 'react';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Container,
-  Typography,
   Box,
-  Card,
-  CardContent,
+  Typography,
+  Paper,
   IconButton,
-  Fab,
   TextField,
   Button,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Stack,
-} from '@mui/material';
-import EditRoundedIcon from '@mui/icons-material/EditRounded';
-import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import { useNavigate } from 'react-router-dom';
-import { useCategories, deleteCategory, addCategory, updateCategory } from '../hooks/useTasks';
+  Fab,
+  useTheme,
+} from "@mui/material";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import FolderRoundedIcon from "@mui/icons-material/FolderRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import EditRoundedIcon from "@mui/icons-material/EditRounded";
+
+import { useDexieFileSystem } from "../hooks/useDexieFileSystem";
 
 export default function Dashboard() {
+  const theme = useTheme();
   const navigate = useNavigate();
-  const categories = useCategories();
 
-  const [editOpen, setEditOpen] = useState(false);
-  const [newOpen, setNewOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [editingCat, setEditingCat] = useState(null);
+  const { directories, fetchDirectories, addDirectory, updateDirectory, deleteDirectory } =
+    useDexieFileSystem();
 
-  const handleAddOpen = () => {
-    setName('');
-    setNewOpen(true);
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [activeProject, setActiveProject] = useState(null);
+  const [renameValue, setRenameValue] = useState("");
+
+  useEffect(() => {
+    fetchDirectories(null); // root → parentDirectoryId = null
+  }, [fetchDirectories]);
+
+  // Create new project (root folder)
+  const handleCreateProject = async () => {
+    const name = newProjectName.trim();
+    if (!name) return;
+
+    const id = `proj_${Date.now()}`;
+    await addDirectory({
+      id,
+      name,
+      parentDirectoryId: null,
+    });
+
+    setNewProjectName("");
+    setNewProjectOpen(false);
+    fetchDirectories(null);
   };
 
-  const handleAdd = () => {
-    if (name.trim()) {
-      addCategory(name.trim());
+  // Rename project
+  const handleStartRename = (project) => {
+    setActiveProject(project);
+    setRenameValue(project.name);
+    setRenameOpen(true);
+  };
+
+  const handleSaveRename = async () => {
+    const name = renameValue.trim();
+    if (!name || !activeProject) return;
+
+    await updateDirectory(activeProject.id, name);
+
+    setRenameOpen(false);
+    setActiveProject(null);
+    setRenameValue("");
+    fetchDirectories(null);
+  };
+
+  // Delete project
+  const handleDeleteProject = async (id) => {
+    if (!window.confirm("Delete this project and all its contents? This cannot be undone.")) {
+      return;
     }
-    setNewOpen(false);
-  };
 
-  const handleEditOpen = (cat) => {
-    setEditingCat(cat);
-    setName(cat.name);
-    setEditOpen(true);
-  };
-
-  const handleEditSave = () => {
-    if (name.trim() && editingCat) {
-      updateCategory(editingCat.id, name.trim());
-    }
-    setEditOpen(false);
-    setEditingCat(null);
-  };
-
-  const handleDelete = (id) => {
-    if (window.confirm('Delete this project and all its tasks?')) {
-      deleteCategory(id);
-    }
+    await deleteDirectory(id);
+    fetchDirectories(null);
   };
 
   return (
-    <Container maxWidth="md" disableGutters  sx={{ pb: { xs: 10, sm: 6 } }}>
+    <Container maxWidth="md" sx={{ pb: 10 }}>
       {/* Header */}
       <Box
         sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1.5,
-          px: { xs: 2, sm: 3 },
-          py: { xs: 2, sm: 3 },
-          bgcolor: 'background.default',
-          position: 'sticky',
+          pt: 4,
+          pb: 3,
+          px: 2,
+          borderBottom: `1px solid ${theme.palette.divider}`,
+          position: "sticky",
           top: 0,
+          bgcolor: "background.default",
           zIndex: 10,
         }}
       >
-
-        <Typography variant="h6" component="h1" fontWeight={600} sx={{ flex: 1 }}>
+        <Typography variant="h5" fontWeight={700} component="h1">
           Projects
         </Typography>
       </Box>
 
-      <Box sx={{ px: { xs: 2, sm: 3 }, py: 3 }}>
-        <Box
-          display="grid"
-          gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }}
-          gap={2.5}
-        >
-          {categories?.map((cat) => (
-            <Card
-              key={cat.id}
-              variant="outlined"
-              sx={{
-                borderRadius: 2,
-                borderColor: 'divider',
-                transition: 'all 0.15s',
-                cursor: 'pointer',
-                '&:hover': {
-                  borderColor: 'primary.main',
-                  bgcolor: 'action.hover',
-                },
-              }}
-              onClick={() => navigate(`/tasks/${cat.id}`)}
-            >
-              <CardContent sx={{ px: 2.5, py: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Typography variant="h6" fontWeight={600} noWrap>
-                  {cat.name}
-                </Typography>
+      {/* Content */}
+      <Box sx={{ px: 2, pt: 3 }}>
+        {directories.length === 0 ? (
+          <Box
+            sx={{
+              py: 12,
+              textAlign: "center",
+              color: "text.secondary",
+            }}
+          >
+            <FolderRoundedIcon sx={{ fontSize: 64, opacity: 0.3, mb: 2 }} />
+            <Typography variant="body1" gutterBottom>
+              You don't have any projects yet
+            </Typography>
+            <Typography variant="body2">
+              Create your first project to get started
+            </Typography>
+          </Box>
+        ) : (
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+            {directories.map((project) => (
+              <Paper
+                key={project.id}
+                elevation={0}
+                variant="outlined"
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  px: 2.5,
+                  py: 1.8,
+                  borderRadius: 2,
+                  cursor: "pointer",
+                  transition: "all 0.12s",
+                  "&:hover": {
+                    bgcolor: "action.hover",
+                    borderColor: "primary.light",
+                  },
+                }}
+                onClick={() => navigate(`/folder/${project.id}`)}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0 }}>
+                  <FolderRoundedIcon
+                    sx={{ fontSize: 34, color: "primary.main", flexShrink: 0 }}
+                  />
+                  <Typography
+                    variant="body1"
+                    fontWeight={500}
+                    noWrap
+                    sx={{ flex: 1 }}
+                  >
+                    {project.name}
+                  </Typography>
+                </Box>
 
-                <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
+                <Box sx={{ display: "flex", gap: 0.5 }}>
                   <IconButton
                     size="small"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleEditOpen(cat);
+                      handleStartRename(project);
                     }}
-                    sx={{
-                      color: 'text.secondary',
-                      '&:hover': { color: 'primary.main' },
-                    }}
+                    sx={{ color: "text.secondary" }}
                   >
                     <EditRoundedIcon fontSize="small" />
                   </IconButton>
 
                   <IconButton
                     size="small"
+                    color="error"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDelete(cat.id);
-                    }}
-                    sx={{
-                      color: 'text.secondary',
-                      '&:hover': { color: 'error.main' },
+                      handleDeleteProject(project.id);
                     }}
                   >
                     <DeleteOutlineRoundedIcon fontSize="small" />
                   </IconButton>
-                </Stack>
-              </CardContent>
-            </Card>
-          ))}
-        </Box>
-
-        {(!categories || categories.length === 0) && (
-          <Box sx={{ textAlign: 'center', py: 10, color: 'text.secondary' }}>
-            <Typography>No projects yet</Typography>
+                </Box>
+              </Paper>
+            ))}
           </Box>
         )}
       </Box>
@@ -155,57 +193,76 @@ export default function Dashboard() {
       {/* FAB */}
       <Fab
         color="primary"
-        size="medium"
-        onClick={handleAddOpen}
+        aria-label="add project"
+        onClick={() => setNewProjectOpen(true)}
         sx={{
-          position: 'fixed',
-          bottom: { xs: 16, sm: 24 },
-          right: { xs: 16, sm: 24 },
-          boxShadow: 3,
+          position: "fixed",
+          bottom: 24,
+          right: 24,
+          boxShadow: 4,
         }}
       >
         <AddRoundedIcon />
       </Fab>
 
       {/* New Project Dialog */}
-      <Dialog open={newOpen} onClose={() => setNewOpen(false)} maxWidth="xs" fullWidth>
+      <Dialog
+        open={newProjectOpen}
+        onClose={() => setNewProjectOpen(false)}
+        fullWidth
+        maxWidth="xs"
+      >
         <DialogTitle>New Project</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             fullWidth
             label="Project name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={newProjectName}
+            onChange={(e) => setNewProjectName(e.target.value)}
+            margin="dense"
             variant="outlined"
-            sx={{ mt: 1 }}
+            helperText="e.g. Mobile App Redesign, Personal Blog, etc."
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setNewOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleAdd} disabled={!name.trim()}>
+          <Button onClick={() => setNewProjectOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            disabled={!newProjectName.trim()}
+            onClick={handleCreateProject}
+          >
             Create
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Edit Project Dialog */}
-      <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="xs" fullWidth>
+      {/* Rename Dialog */}
+      <Dialog
+        open={renameOpen}
+        onClose={() => setRenameOpen(false)}
+        fullWidth
+        maxWidth="xs"
+      >
         <DialogTitle>Rename Project</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             fullWidth
-            label="Project name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            label="New project name"
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            margin="dense"
             variant="outlined"
-            sx={{ mt: 1 }}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleEditSave} disabled={!name.trim()}>
+          <Button onClick={() => setRenameOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            disabled={!renameValue.trim()}
+            onClick={handleSaveRename}
+          >
             Save
           </Button>
         </DialogActions>
