@@ -50,11 +50,14 @@ export default function FileEditorPage() {
         setContent(typeof f.content === "string" ? f.content : "");
       }
     }
+
     load();
 
     return () => {
       isCancelled = true;
     };
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileId]);
 
   const handleSave = async () => {
