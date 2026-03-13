@@ -11,7 +11,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Fab,
   useTheme,
   Card,
   Stack,
@@ -47,7 +46,7 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    fetchDirectories(null); // root → parentDirectoryId = null
+    fetchDirectories(null); 
   }, [fetchDirectories]);
 
   // Create new project (root folder)
@@ -198,21 +197,6 @@ export default function Dashboard() {
           </Stack>
         )}
       </Box>
-
-      {/* FAB */}
-      <Fab
-        color="primary"
-        aria-label="add project"
-        onClick={() => setNewProjectOpen(true)}
-        sx={{
-          position: "fixed",
-          bottom: 24,
-          right: 24,
-          boxShadow: 4,
-        }}
-      >
-        <AddRoundedIcon />
-      </Fab>
 
       {/* New Project Dialog */}
       <Dialog
