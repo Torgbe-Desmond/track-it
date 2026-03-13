@@ -316,7 +316,13 @@ export default function FileBoard() {
             label="Folder Name"
             value={newFolderName}
             onChange={(e) => setNewFolderName(e.target.value)}
-            sx={{ mt: 1 }}
+            sx={{
+              mt: 1,
+              "& input": {
+                fontSize: { xs: 16, sm: 14 }, 
+                WebkitTextSizeAdjust: "100%",
+              },
+            }}
           />
         </DialogContent>
 

@@ -219,6 +219,12 @@ export default function Dashboard() {
             margin="dense"
             variant="outlined"
             helperText="e.g. Mobile App Redesign, Personal Blog, etc."
+            sx={{
+              "& input": {
+                fontSize: { xs: 16, sm: 14 },
+                WebkitTextSizeAdjust: "100%",
+              },
+            }}
           />
         </DialogContent>
         <DialogActions>

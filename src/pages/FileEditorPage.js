@@ -304,10 +304,7 @@ export default function FileEditorPage() {
             width: "100%",
           }}
         >
-          <IconButton 
-            onClick={() => navigate(-1)}
-            sx={{ flexShrink: 0 }}
-          >
+          <IconButton onClick={() => navigate(-1)} sx={{ flexShrink: 0 }}>
             <ArrowBackIosIcon />
           </IconButton>
 
@@ -433,7 +430,7 @@ export default function FileEditorPage() {
               width: isMobile ? "100%" : "50%",
               minHeight: isMobile ? "50vh" : "70vh",
               fontFamily: "monospace",
-              fontSize: 14,
+              fontSize: isMobile ? 16 : 14,
               padding: 12,
               borderRadius: 4,
               border: `1px solid ${theme.palette.divider}`,
@@ -442,6 +439,7 @@ export default function FileEditorPage() {
               resize: "vertical",
               overflow: "auto",
               outline: "none",
+              WebkitTextSizeAdjust: "100%",
             }}
           />
 
@@ -485,7 +483,13 @@ export default function FileEditorPage() {
             label="File name"
             value={newFileName}
             onChange={(e) => setNewFileName(e.target.value)}
-            sx={{ mt: 1 }}
+            sx={{
+              mt: 1,
+              "& input": {
+                fontSize: { xs: 16, sm: 14 },
+                WebkitTextSizeAdjust: "100%",
+              },
+            }}
           />
         </DialogContent>
 
