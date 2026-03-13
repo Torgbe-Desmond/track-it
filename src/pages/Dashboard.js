@@ -44,8 +44,13 @@ export default function Dashboard() {
     setAnchorEl(null);
   };
 
+  const handleAddProjectClick = () => {
+    handleMenuClose(); // Close the menu
+    setNewProjectOpen(true); // Open the dialog
+  };
+
   useEffect(() => {
-    fetchDirectories(null); 
+    fetchDirectories(null);
   }, [fetchDirectories]);
 
   // Create new project (root folder)
@@ -63,7 +68,6 @@ export default function Dashboard() {
     setNewProjectName("");
     setNewProjectOpen(false);
     fetchDirectories(null);
-    handleMenuClose();
   };
 
   return (
@@ -73,15 +77,16 @@ export default function Dashboard() {
         sx={{
           display: "flex",
           alignItems: "center",
-          justifyContent:"space-between", 
+          justifyContent: "space-between",
           gap: 1.5,
           py: { xs: 2, sm: 3 },
+          px: { xs: 2, sm: 3 },
           position: "sticky",
           top: 0,
           mb: 0,
           bgcolor: "background.default",
           zIndex: 10,
-          width:"100%",
+          width: "100%",
           borderBottom: `1px solid ${theme.palette.divider}`,
         }}
       >
@@ -117,13 +122,12 @@ export default function Dashboard() {
           transformOrigin={{ horizontal: "right", vertical: "top" }}
           anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
         >
-          <MenuItem onClick={handleCreateProject}>
+          <MenuItem onClick={handleAddProjectClick}>
             <ListItemIcon>
               <FolderRoundedIcon fontSize="small" />
             </ListItemIcon>
             <ListItemText>Add Project</ListItemText>
           </MenuItem>
-
         </Menu>
       </Box>
 
@@ -142,7 +146,7 @@ export default function Dashboard() {
               You don't have any projects yet
             </Typography>
             <Typography variant="body2">
-              Create your first project to get started
+              Click the menu button (⋮) and select "Add Project" to get started
             </Typography>
           </Box>
         ) : (

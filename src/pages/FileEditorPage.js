@@ -171,49 +171,128 @@ export default function FileEditorPage() {
 
   const isEmpty = !content || content.trim() === "";
 
+  // Fixed markdown styles with proper overflow handling
   const markdownStyles = {
-    "& h1,h2,h3,h4,h5,h6": { fontWeight: 600 },
+    // Base container styles
+    width: "100%",
+    overflowX: "auto",
+    wordWrap: "break-word",
+
+    // Typography
+    "& h1,h2,h3,h4,h5,h6": {
+      fontWeight: 600,
+      wordWrap: "break-word",
+    },
+
+    // Blockquotes
     "& blockquote": {
       borderLeft: `4px solid ${theme.palette.divider}`,
       pl: 2,
       color: theme.palette.text.secondary,
       fontStyle: "italic",
       bgcolor: theme.palette.action.hover,
+      wordWrap: "break-word",
+      overflowX: "auto",
     },
+
+    // Code blocks - main overflow fix
     "& pre": {
-      backgroundColor:
-        theme.palette.mode === "dark" ? "#0d1117" : "#f6f8fa",
+      backgroundColor: theme.palette.mode === "dark" ? "#0d1117" : "#f6f8fa",
       padding: 2,
       borderRadius: 2,
-      overflow: "auto",
+      overflowX: "auto", // Horizontal scroll for code blocks
+      overflowY: "hidden",
+      maxWidth: "100%",
+      whiteSpace: "pre-wrap", // Allow wrapping for better mobile experience
+      wordWrap: "break-word",
+      "& code": {
+        whiteSpace: "pre-wrap", // Allow wrapping in code blocks
+        wordWrap: "break-word",
+        backgroundColor: "transparent",
+        padding: 0,
+      },
     },
+
+    // Inline code
     "& code": {
       fontFamily: "monospace",
       fontSize: "0.9em",
-      bgcolor:
-        theme.palette.mode === "dark" ? "#161b22" : "#f6f8fa",
+      bgcolor: theme.palette.mode === "dark" ? "#161b22" : "#f6f8fa",
       px: 0.5,
       py: 0.2,
       borderRadius: 1,
+      whiteSpace: "pre-wrap",
+      wordWrap: "break-word",
     },
+
+    // Links
     "& a": {
       color: theme.palette.primary.main,
       textDecoration: "underline",
+      wordWrap: "break-word",
     },
-    "& ul,& ol": { pl: 4, mb: 2 },
-    "& table": { width: "100%", borderCollapse: "collapse", mb: 2 },
+
+    // Lists
+    "& ul,& ol": {
+      pl: 4,
+      mb: 2,
+      wordWrap: "break-word",
+    },
+
+    // Tables - another common overflow culprit
+    "& table": {
+      width: "100%",
+      borderCollapse: "collapse",
+      mb: 2,
+      display: "block",
+      overflowX: "auto", // Horizontal scroll for tables
+      maxWidth: "100%",
+    },
+
     "& th,& td": {
       border: `1px solid ${theme.palette.divider}`,
       padding: 1,
       textAlign: "left",
+      wordWrap: "break-word",
+      minWidth: "100px", // Prevent tiny columns
     },
-    "& th": { bgcolor: theme.palette.action.hover },
+
+    "& th": {
+      bgcolor: theme.palette.action.hover,
+    },
+
+    // Images
+    "& img": {
+      maxWidth: "100%",
+      height: "auto",
+    },
+
+    // Paragraphs and other elements
+    "& p": {
+      wordWrap: "break-word",
+      overflowWrap: "break-word",
+    },
+
+    "& div": {
+      wordWrap: "break-word",
+      overflowWrap: "break-word",
+    },
+  };
+
+  // Additional styles for the Paper container
+  const paperStyles = {
+    p: 3,
+    minHeight: "70vh",
+    border: `1px solid ${theme.palette.divider}`,
+    overflowX: "auto", // Add scroll to Paper if content overflows
+    overflowY: "auto",
+    width: "100%",
   };
 
   /* ---------------- UI ---------------- */
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="lg" sx={{ py: 4, overflowX: "hidden" }}>
       {/* Header */}
 
       <Box sx={{ mb: 3 }}>
@@ -223,25 +302,18 @@ export default function FileEditorPage() {
             alignItems: "center",
             gap: 2,
             flexWrap: "wrap",
+          
           }}
         >
           <IconButton onClick={() => navigate(-1)}>
             <ArrowBackIosIcon />
           </IconButton>
 
-          <Typography
-            variant="h6"
-            fontWeight={700}
-            sx={{ flexGrow: 1 }}
-            noWrap
-          >
+          <Typography variant="h6" fontWeight={700} sx={{ flexGrow: 1 }} noWrap>
             {file.name}
           </Typography>
 
-          <IconButton
-            id="file-options-button"
-            onClick={handleMenuClick}
-          >
+          <IconButton id="file-options-button" onClick={handleMenuClick}>
             <MoreHorizIcon />
           </IconButton>
 
@@ -273,10 +345,7 @@ export default function FileEditorPage() {
               <ListItemText>Rename File</ListItemText>
             </MenuItem>
 
-            <MenuItem
-              onClick={handleDeleteOpen}
-              sx={{ color: "error.main" }}
-            >
+            <MenuItem onClick={handleDeleteOpen} sx={{ color: "error.main" }}>
               <ListItemIcon sx={{ color: "error.main" }}>
                 <DeleteOutlineRoundedIcon fontSize="small" />
               </ListItemIcon>
@@ -310,13 +379,7 @@ export default function FileEditorPage() {
       {/* Viewer */}
 
       {!isEditing && (
-        <Paper
-          sx={{
-            p: 3,
-            minHeight: "70vh",
-            border: `1px solid ${theme.palette.divider}`,
-          }}
-        >
+        <Paper sx={paperStyles}>
           {isEmpty ? (
             <Typography color="text.secondary" fontStyle="italic">
               No content yet. Use the menu to edit.
@@ -343,6 +406,7 @@ export default function FileEditorPage() {
             flexDirection: isMobile ? "column" : "row",
             gap: 2,
             minHeight: "70vh",
+            width: "100%",
           }}
         >
           <TextareaAutosize
@@ -355,6 +419,8 @@ export default function FileEditorPage() {
               padding: 12,
               borderRadius: 4,
               border: "1px solid #ccc",
+              resize: "vertical",
+              overflow: "auto",
             }}
           />
 
@@ -363,6 +429,8 @@ export default function FileEditorPage() {
               width: isMobile ? "100%" : "50%",
               p: 3,
               border: `1px solid ${theme.palette.divider}`,
+              overflowX: "auto",
+              overflowY: "auto",
             }}
           >
             <Box sx={markdownStyles}>
@@ -379,7 +447,12 @@ export default function FileEditorPage() {
 
       {/* Rename Dialog */}
 
-      <Dialog open={renameOpen} onClose={() => setRenameOpen(false)}>
+      <Dialog
+        open={renameOpen}
+        onClose={() => setRenameOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
         <DialogTitle>Rename File</DialogTitle>
 
         <DialogContent>
@@ -407,6 +480,8 @@ export default function FileEditorPage() {
       <Dialog
         open={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
+        maxWidth="xs"
+        fullWidth
       >
         <DialogTitle>Delete File</DialogTitle>
 
@@ -417,9 +492,7 @@ export default function FileEditorPage() {
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={() => setDeleteConfirmOpen(false)}>
-            Cancel
-          </Button>
+          <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
 
           <Button
             color="error"
