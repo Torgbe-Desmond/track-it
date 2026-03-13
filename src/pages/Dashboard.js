@@ -19,7 +19,6 @@ import {
   ListItemIcon,
   ListItemText,
 } from "@mui/material";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import FolderRoundedIcon from "@mui/icons-material/FolderRounded";
 import { useDexieFileSystem } from "../hooks/useDexieFileSystem";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
