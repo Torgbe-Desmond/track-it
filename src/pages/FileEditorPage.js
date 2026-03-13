@@ -200,13 +200,13 @@ export default function FileEditorPage() {
       backgroundColor: theme.palette.mode === "dark" ? "#0d1117" : "#f6f8fa",
       padding: 2,
       borderRadius: 2,
-      overflowX: "auto", // Horizontal scroll for code blocks
+      overflowX: "auto",
       overflowY: "hidden",
       maxWidth: "100%",
-      whiteSpace: "pre-wrap", // Allow wrapping for better mobile experience
+      whiteSpace: "pre-wrap",
       wordWrap: "break-word",
       "& code": {
-        whiteSpace: "pre-wrap", // Allow wrapping in code blocks
+        whiteSpace: "pre-wrap",
         wordWrap: "break-word",
         backgroundColor: "transparent",
         padding: 0,
@@ -239,13 +239,13 @@ export default function FileEditorPage() {
       wordWrap: "break-word",
     },
 
-    // Tables - another common overflow culprit
+    // Tables
     "& table": {
       width: "100%",
       borderCollapse: "collapse",
       mb: 2,
       display: "block",
-      overflowX: "auto", // Horizontal scroll for tables
+      overflowX: "auto",
       maxWidth: "100%",
     },
 
@@ -254,7 +254,7 @@ export default function FileEditorPage() {
       padding: 1,
       textAlign: "left",
       wordWrap: "break-word",
-      minWidth: "100px", // Prevent tiny columns
+      minWidth: "100px",
     },
 
     "& th": {
@@ -284,7 +284,7 @@ export default function FileEditorPage() {
     p: 3,
     minHeight: "70vh",
     border: `1px solid ${theme.palette.divider}`,
-    overflowX: "auto", // Add scroll to Paper if content overflows
+    overflowX: "auto",
     overflowY: "auto",
     width: "100%",
   };
@@ -294,26 +294,44 @@ export default function FileEditorPage() {
   return (
     <Container maxWidth="lg" sx={{ py: 4, overflowX: "hidden" }}>
       {/* Header */}
-
       <Box sx={{ mb: 3 }}>
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
-            gap: 2,
-            flexWrap: "wrap",
-          
+            gap: 1,
+            flexWrap: "nowrap",
+            width: "100%",
           }}
         >
-          <IconButton onClick={() => navigate(-1)}>
+          <IconButton 
+            onClick={() => navigate(-1)}
+            sx={{ flexShrink: 0 }}
+          >
             <ArrowBackIosIcon />
           </IconButton>
 
-          <Typography variant="h6" fontWeight={700} sx={{ flexGrow: 1 }} noWrap>
+          <Typography
+            variant="h6"
+            fontWeight={700}
+            sx={{
+              flex: "1 1 auto",
+              minWidth: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              px: 1,
+            }}
+            title={file.name}
+          >
             {file.name}
           </Typography>
 
-          <IconButton id="file-options-button" onClick={handleMenuClick}>
+          <IconButton
+            id="file-options-button"
+            onClick={handleMenuClick}
+            sx={{ flexShrink: 0 }}
+          >
             <MoreHorizIcon />
           </IconButton>
 
@@ -377,7 +395,6 @@ export default function FileEditorPage() {
       </Box>
 
       {/* Viewer */}
-
       {!isEditing && (
         <Paper sx={paperStyles}>
           {isEmpty ? (
@@ -398,32 +415,37 @@ export default function FileEditorPage() {
       )}
 
       {/* Editor */}
-
       {isEditing && (
         <Box
           sx={{
             display: "flex",
-            flexDirection: isMobile ? "column" : "row",
+            flexDirection: isMobile ? "column-reverse" : "row", // Preview on top for mobile
             gap: 2,
             minHeight: "70vh",
             width: "100%",
           }}
         >
+          {/* Textarea - Now responsive to theme */}
           <TextareaAutosize
             value={content}
             onChange={(e) => setContent(e.target.value)}
             style={{
               width: isMobile ? "100%" : "50%",
-              minHeight: "70vh",
+              minHeight: isMobile ? "50vh" : "70vh",
               fontFamily: "monospace",
+              fontSize: 14,
               padding: 12,
               borderRadius: 4,
-              border: "1px solid #ccc",
+              border: `1px solid ${theme.palette.divider}`,
+              backgroundColor: theme.palette.background.paper,
+              color: theme.palette.text.primary,
               resize: "vertical",
               overflow: "auto",
+              outline: "none",
             }}
           />
 
+          {/* Preview */}
           <Paper
             sx={{
               width: isMobile ? "100%" : "50%",
@@ -431,6 +453,8 @@ export default function FileEditorPage() {
               border: `1px solid ${theme.palette.divider}`,
               overflowX: "auto",
               overflowY: "auto",
+              minHeight: isMobile ? "50vh" : "70vh",
+              order: isMobile ? 1 : 2, // Ensure preview is first on mobile
             }}
           >
             <Box sx={markdownStyles}>
@@ -446,7 +470,6 @@ export default function FileEditorPage() {
       )}
 
       {/* Rename Dialog */}
-
       <Dialog
         open={renameOpen}
         onClose={() => setRenameOpen(false)}
@@ -476,7 +499,6 @@ export default function FileEditorPage() {
       </Dialog>
 
       {/* Delete Dialog */}
-
       <Dialog
         open={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}

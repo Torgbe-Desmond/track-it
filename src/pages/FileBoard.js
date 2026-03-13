@@ -160,9 +160,11 @@ export default function FileBoard() {
         sx={{
           display: "flex",
           alignItems: "center",
-          gap: 1.5,
+          width: "100%",
           py: { xs: 2, sm: 3 },
+          px: { xs: 2, sm: 3 },
           position: "sticky",
+          justifyContent: "space-between",
           top: 0,
           bgcolor: "background.default",
           zIndex: 10,
