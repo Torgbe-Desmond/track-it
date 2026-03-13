@@ -4,7 +4,6 @@ import {
   Container,
   Box,
   Typography,
-  Paper,
   IconButton,
   TextField,
   Button,
@@ -14,6 +13,8 @@ import {
   DialogActions,
   Fab,
   useTheme,
+  Card,
+  Stack
 } from "@mui/material";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import FolderRoundedIcon from "@mui/icons-material/FolderRounded";
@@ -96,7 +97,7 @@ export default function Dashboard() {
   };
 
   return (
-    <Container maxWidth="md" disableGutters sx={{ pb: { xs: 10, sm: 6 } }}>
+    <Container maxWidth="md" disableGutters sx={{ pb: { xs: 10, sm: 6, } }}>
       {/* Header */}
       <Box
         sx={{
@@ -107,6 +108,7 @@ export default function Dashboard() {
           py: { xs: 2, sm: 3 },
           position: "sticky",
           top: 0,
+          mb:0,
           bgcolor: "background.default",
           zIndex: 10,
           borderBottom: `1px solid ${theme.palette.divider}`,
@@ -118,7 +120,7 @@ export default function Dashboard() {
       </Box>
 
       {/* Content */}
-      <Box sx={{ px: 2, pt: 3 }}>
+      <Box sx={{  }}>
         {directories.length === 0 ? (
           <Box
             sx={{
@@ -136,9 +138,9 @@ export default function Dashboard() {
             </Typography>
           </Box>
         ) : (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-            {directories.map((project) => (
-              <Paper
+              <Stack elevation={0} sx={{ pb: 4, }}>
+                 {directories.map((project) => (
+              <Card
                 key={project.id}
                 elevation={0}
                 variant="outlined"
@@ -146,15 +148,19 @@ export default function Dashboard() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  px: 2.5,
+                  px: { xs: 2, sm: 2.5 },
                   py: 1.8,
-                  borderRadius: 2,
+                  borderRadius: 0,
                   cursor: "pointer",
                   transition: "all 0.12s",
                   "&:hover": {
                     bgcolor: "action.hover",
                     borderColor: "primary.light",
                   },
+                  borderTop:"none",
+                  borderLeft: "none",
+                  borderRight: "none",
+                
                 }}
                 onClick={() => navigate(`/folder/${project.id}`)}
               >
@@ -202,9 +208,9 @@ export default function Dashboard() {
                     <DeleteOutlineRoundedIcon fontSize="small" />
                   </IconButton>
                 </Box>
-              </Paper>
+              </Card>
             ))}
-          </Box>
+          </Stack>
         )}
       </Box>
 

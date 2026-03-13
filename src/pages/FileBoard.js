@@ -17,13 +17,13 @@ import {
 } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+// import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import InsertDriveFileRoundedIcon from "@mui/icons-material/InsertDriveFileRounded";
-import EditRoundedIcon from "@mui/icons-material/EditRounded";
+// import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import { useDexieFileSystem } from "../hooks/useDexieFileSystem";
 import AddFile from "../components/AddFile";
-import { db } from "../db/_db";
+
 
 export default function FileBoard() {
   const { dirId } = useParams();
@@ -39,13 +39,13 @@ export default function FileBoard() {
 
   useEffect(() => {
     fetchFiles(dirId);
-  }, [dirId,fetchFiles]);
+  }, [dirId, fetchFiles]);
 
-  const handleRenameOpen = (file) => {
-    setActiveFile(file);
-    setNewName(file.name);
-    setRenameOpen(true);
-  };
+//   const handleRenameOpen = (file) => {
+//     setActiveFile(file);
+//     setNewName(file.name);
+//     setRenameOpen(true);
+//   };
 
   const handleRenameSave = async () => {
     if (activeFile && newName.trim()) {
@@ -90,7 +90,7 @@ export default function FileBoard() {
       </Box>
 
       {/* File List */}
-      <Stack spacing={2} sx={{ px: { xs: 2, sm: 3 }, pb: 4, pt: 3 }}>
+      <Stack elevation={0} sx={{ pb: 4, }}>
         {files?.length === 0 ? (
           <Box sx={{ py: 10, textAlign: "center", color: "text.secondary" }}>
             <Typography variant="body1">No files yet</Typography>
@@ -100,10 +100,13 @@ export default function FileBoard() {
             <Card
               key={file.id}
               variant="outlined"
+              elevation={0}
               sx={{
-                borderRadius: 2,
-                borderColor: "divider",
+                borderRadius: 0,
                 transition: "all 0.15s",
+                borderTop: "none",
+                borderLeft: "none",
+                borderRight: "none",
                 "&:hover": {
                   borderColor: "text.disabled",
                   bgcolor: "action.hover",
@@ -112,12 +115,20 @@ export default function FileBoard() {
             >
               <Box
                 sx={{
+        
+                  px: 2.5,
+          
+                  gap: 2,
                   display: "flex",
                   alignItems: "center",
-                  px: 2.5,
-                  py: 1.5,
-                  gap: 2,
+                  py: 1.8,
+                  borderRadius: 0,
                   cursor: "pointer",
+                  transition: "all 0.12s",
+                  "&:hover": {
+                    bgcolor: "action.hover",
+                    borderColor: "primary.light",
+                  },
                 }}
                 onClick={() => navigate(`/file/${file.id}`)}
               >
@@ -136,7 +147,7 @@ export default function FileBoard() {
                 </Typography>
 
                 {/* Edit Name */}
-                <IconButton
+                {/* <IconButton
                   size="small"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -151,10 +162,10 @@ export default function FileBoard() {
                   }}
                 >
                   <EditRoundedIcon fontSize="small" />
-                </IconButton>
+                </IconButton> */}
 
                 {/* Delete Button */}
-                <IconButton
+                {/* <IconButton
                   size="small"
                   onClick={async (e) => {
                     e.stopPropagation();
@@ -169,7 +180,7 @@ export default function FileBoard() {
                   }}
                 >
                   <DeleteOutlineRoundedIcon fontSize="small" />
-                </IconButton>
+                </IconButton> */}
               </Box>
             </Card>
           ))
