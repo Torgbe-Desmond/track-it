@@ -3,7 +3,6 @@ import {
   Container,
   Box,
   Typography,
-  Fab,
   Card,
   Stack,
   IconButton,
@@ -14,65 +13,154 @@ import {
   DialogActions,
   Button,
   useTheme,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
 } from "@mui/material";
+
 import { useParams, useNavigate } from "react-router-dom";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
-// import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+
 import InsertDriveFileRoundedIcon from "@mui/icons-material/InsertDriveFileRounded";
-// import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import DriveFileRenameOutlineRoundedIcon from "@mui/icons-material/DriveFileRenameOutlineRounded";
+import FolderDeleteRoundedIcon from "@mui/icons-material/FolderDeleteRounded";
+import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+
 import { useDexieFileSystem } from "../hooks/useDexieFileSystem";
 import AddFile from "../components/AddFile";
-
 
 export default function FileBoard() {
   const { dirId } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
-  const { files, fetchFiles, updateFile } = useDexieFileSystem();
+
+  const { files, fetchFiles, getDirectory, updateDirectory, deleteDirectory } =
+    useDexieFileSystem();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // State for renaming
+  const [currentFolder, setCurrentFolder] = useState(null);
+
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
+
   const [renameOpen, setRenameOpen] = useState(false);
-  const [activeFile, setActiveFile] = useState(null);
-  const [newName, setNewName] = useState("");
+  const [newFolderName, setNewFolderName] = useState("");
+
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+
+  /* ---------------- Load Files + Folder ---------------- */
 
   useEffect(() => {
-    fetchFiles(dirId);
-  }, [dirId, fetchFiles]);
+    if (!dirId) return;
 
-//   const handleRenameOpen = (file) => {
-//     setActiveFile(file);
-//     setNewName(file.name);
-//     setRenameOpen(true);
-//   };
+    let active = true;
 
-  const handleRenameSave = async () => {
-    if (activeFile && newName.trim()) {
-      // This will now pass { name: newName } to the updated hook
-      await updateFile(activeFile.id, { name: newName.trim() });
-      // fetchFiles is called inside updateFile, so this is safe!
+    async function loadData() {
+      try {
+        await fetchFiles(dirId);
+
+        const folder = await getDirectory(dirId);
+
+        if (active) {
+          setCurrentFolder(folder);
+          setNewFolderName(folder?.name || "");
+        }
+      } catch (error) {
+        console.error("Failed to load folder:", error);
+      }
     }
-    setRenameOpen(false);
-    setActiveFile(null);
-    setNewName("");
+
+    loadData();
+
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirId]);
+
+  /* ---------------- Folder Menu ---------------- */
+
+  const handleMenuClick = (event) => {
+    event.stopPropagation();
+    setAnchorEl(event.currentTarget);
   };
 
-  const handleRenameCancel = () => {
-    setRenameOpen(false);
-    setActiveFile(null);
-    setNewName("");
+  const handleMenuClose = () => {
+    setAnchorEl(null);
   };
+
+  /* ---------------- Rename Folder ---------------- */
+
+  const handleRenameFolderOpen = () => {
+    handleMenuClose();
+    setRenameOpen(true);
+  };
+
+  const handleRenameFolderSave = async () => {
+    if (!dirId || !newFolderName.trim()) return;
+
+    try {
+      await updateDirectory(dirId, newFolderName.trim());
+
+      const folder = await getDirectory(dirId);
+
+      setCurrentFolder(folder);
+      setNewFolderName(folder?.name || "");
+      setRenameOpen(false);
+    } catch (err) {
+      console.error("Rename failed:", err);
+    }
+  };
+
+  /* ---------------- Delete Folder ---------------- */
+
+  const handleDeleteFolderOpen = () => {
+    handleMenuClose();
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteFolder = async () => {
+    if (!dirId) return;
+
+    try {
+      await deleteDirectory(dirId);
+      setDeleteConfirmOpen(false);
+      navigate(-1);
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+  };
+
+  /* ---------------- Files ---------------- */
+
+  const handleFileClick = (fileId) => {
+    navigate(`/file/${fileId}`);
+  };
+
+  const handleAddFile = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleFileAdded = async () => {
+    if (!dirId) return;
+
+    await fetchFiles(dirId);
+    setIsModalOpen(false);
+  };
+
+  /* ---------------- UI ---------------- */
 
   return (
     <Container maxWidth="md" disableGutters sx={{ pb: { xs: 10, sm: 6 } }}>
       {/* Header */}
+
       <Box
         sx={{
           display: "flex",
           alignItems: "center",
           gap: 1.5,
-          px: { xs: 2, sm: 3 },
           py: { xs: 2, sm: 3 },
           position: "sticky",
           top: 0,
@@ -81,160 +169,191 @@ export default function FileBoard() {
           borderBottom: `1px solid ${theme.palette.divider}`,
         }}
       >
-        <IconButton onClick={() => navigate(-1)}>
-          <ArrowBackRoundedIcon />
+        <IconButton onClick={() => navigate(-1)} aria-label="Go back">
+          <ArrowBackIosIcon />
         </IconButton>
-        <Typography variant="h6" fontWeight={600} flex={1}>
-          Files
+
+        <Typography variant="h6" fontWeight={600} flex={1} noWrap>
+          {currentFolder?.name || "Files"}
         </Typography>
+
+        <IconButton
+          id="folder-options-button"
+          aria-controls={open ? "folder-menu" : undefined}
+          aria-haspopup="true"
+          aria-expanded={open ? "true" : undefined}
+          onClick={handleMenuClick}
+          sx={{
+            color: "text.secondary",
+            "&:hover": {
+              color: "primary.main",
+              bgcolor: "action.hover",
+            },
+          }}
+        >
+          <MoreHorizIcon />
+        </IconButton>
+
+        <Menu
+          id="folder-menu"
+          anchorEl={anchorEl}
+          open={open}
+          onClose={handleMenuClose}
+          MenuListProps={{
+            "aria-labelledby": "folder-options-button",
+          }}
+          transformOrigin={{ horizontal: "right", vertical: "top" }}
+          anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+        >
+          <MenuItem onClick={handleRenameFolderOpen}>
+            <ListItemIcon>
+              <DriveFileRenameOutlineRoundedIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Rename Folder</ListItemText>
+          </MenuItem>
+
+          <MenuItem onClick={handleAddFile}>
+            <ListItemIcon>
+              <InsertDriveFileRoundedIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Add File</ListItemText>
+          </MenuItem>
+
+          <MenuItem
+            onClick={handleDeleteFolderOpen}
+            sx={{ color: "error.main" }}
+          >
+            <ListItemIcon sx={{ color: "error.main" }}>
+              <FolderDeleteRoundedIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Delete Folder</ListItemText>
+          </MenuItem>
+        </Menu>
       </Box>
 
       {/* File List */}
-      <Stack elevation={0} sx={{ pb: 4, }}>
-        {files?.length === 0 ? (
+
+      <Stack sx={{ pb: 4 }}>
+        {!files?.length ? (
           <Box sx={{ py: 10, textAlign: "center", color: "text.secondary" }}>
-            <Typography variant="body1">No files yet</Typography>
+            <InsertDriveFileRoundedIcon
+              sx={{ fontSize: 48, mb: 2, opacity: 0.5 }}
+            />
+
+            <Typography variant="body1" gutterBottom>
+              No files yet
+            </Typography>
+
+            <Typography variant="body2">
+              Click the + button to add your first file
+            </Typography>
           </Box>
         ) : (
           files.map((file) => (
             <Card
               key={file.id}
               variant="outlined"
-              elevation={0}
               sx={{
                 borderRadius: 0,
-                transition: "all 0.15s",
                 borderTop: "none",
                 borderLeft: "none",
                 borderRight: "none",
-                "&:hover": {
-                  borderColor: "text.disabled",
-                  bgcolor: "action.hover",
-                },
               }}
             >
               <Box
                 sx={{
-        
                   px: 2.5,
-          
                   gap: 2,
                   display: "flex",
                   alignItems: "center",
                   py: 1.8,
-                  borderRadius: 0,
                   cursor: "pointer",
-                  transition: "all 0.12s",
                   "&:hover": {
+                    color: "primary.main",
                     bgcolor: "action.hover",
-                    borderColor: "primary.light",
                   },
                 }}
-                onClick={() => navigate(`/file/${file.id}`)}
+                onClick={() => handleFileClick(file.id)}
               >
-                {/* File Icon */}
                 <InsertDriveFileRoundedIcon
                   sx={{ color: "primary.main", fontSize: 32 }}
                 />
 
-                {/* File Name */}
-                <Typography
-                  variant="body1"
-                  noWrap
-                  sx={{ flex: 1, fontWeight: 500 }}
-                >
+                <Typography noWrap sx={{ flex: 1, fontWeight: 500 }}>
                   {file.name}
                 </Typography>
-
-                {/* Edit Name */}
-                {/* <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRenameOpen(file);
-                  }}
-                  sx={{
-                    color: "text.secondary",
-                    "&:hover": {
-                      color: "primary.main",
-                      bgcolor: "action.hover",
-                    },
-                  }}
-                >
-                  <EditRoundedIcon fontSize="small" />
-                </IconButton> */}
-
-                {/* Delete Button */}
-                {/* <IconButton
-                  size="small"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    if (window.confirm("Delete this file?")) {
-                      await db.files.delete(file.id);
-                      fetchFiles(dirId);
-                    }
-                  }}
-                  sx={{
-                    color: "text.secondary",
-                    "&:hover": { color: "error.main", bgcolor: "action.hover" },
-                  }}
-                >
-                  <DeleteOutlineRoundedIcon fontSize="small" />
-                </IconButton> */}
               </Box>
             </Card>
           ))
         )}
       </Stack>
 
-      {/* Floating Action Button */}
-      <Fab
-        color="primary"
-        size="medium"
-        onClick={() => setIsModalOpen(true)}
-        sx={{
-          position: "fixed",
-          bottom: { xs: 16, sm: 24 },
-          right: { xs: 16, sm: 24 },
-          boxShadow: 4,
-        }}
-      >
-        <AddRoundedIcon />
-      </Fab>
+      {/* Add File Dialog */}
 
-      {/* Add File Modal */}
       <AddFile
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         directoryId={dirId}
-        onFileAdded={() => {
-          fetchFiles(dirId);
-          setIsModalOpen(false);
-        }}
+        onFileAdded={handleFileAdded}
       />
 
-      {/* Rename Dialog */}
+      {/* Rename Folder */}
+
       <Dialog
         open={renameOpen}
-        onClose={handleRenameCancel}
+        onClose={() => setRenameOpen(false)}
         fullWidth
         maxWidth="xs"
       >
-        <DialogTitle>Rename File</DialogTitle>
+        <DialogTitle>Rename Folder</DialogTitle>
+
         <DialogContent>
           <TextField
             autoFocus
             fullWidth
-            label="File Name"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
+            label="Folder Name"
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
             sx={{ mt: 1 }}
           />
         </DialogContent>
+
         <DialogActions>
-          <Button onClick={handleRenameCancel}>Cancel</Button>
-          <Button variant="contained" onClick={handleRenameSave}>
+          <Button onClick={() => setRenameOpen(false)}>Cancel</Button>
+
+          <Button variant="contained" onClick={handleRenameFolderSave}>
             Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Folder */}
+
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Delete Folder</DialogTitle>
+
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete "{currentFolder?.name}"? This will
+            also delete all files inside this folder. This action cannot be
+            undone.
+          </Typography>
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
+
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleDeleteFolder}
+          >
+            Delete
           </Button>
         </DialogActions>
       </Dialog>

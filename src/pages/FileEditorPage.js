@@ -10,17 +10,32 @@ import {
   IconButton,
   useTheme,
   useMediaQuery,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
 } from "@mui/material";
+
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
+import DriveFileRenameOutlineRoundedIcon from "@mui/icons-material/DriveFileRenameOutlineRounded";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+
 import TextareaAutosize from "@mui/material/TextareaAutosize";
+
 import { useDexieFileSystem } from "../hooks/useDexieFileSystem";
 import { db } from "../db/_db";
-import rehypeRaw from "rehype-raw";
 
 export default function FileEditorPage() {
   const { fileId } = useParams();
@@ -31,55 +46,176 @@ export default function FileEditorPage() {
   const { getFile, updateFile, fetchFiles } = useDexieFileSystem();
 
   const [file, setFile] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
 
-  // Load file with race-condition protection
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
+
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [newFileName, setNewFileName] = useState("");
+
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+
+  /* ---------------- Load File ---------------- */
+
   useEffect(() => {
-    let isCancelled = false;
+    if (!fileId) return;
+
+    let mounted = true;
 
     async function load() {
-      const f = await getFile(fileId);
-      if (!isCancelled) {
+      try {
+        const f = await getFile(fileId);
+
+        if (!mounted) return;
+
         if (!f) {
           alert("File not found");
           navigate(-1);
           return;
         }
+
         setFile(f);
         setContent(typeof f.content === "string" ? f.content : "");
+        setNewFileName(f.name || "");
+      } catch (err) {
+        console.error("Failed to load file:", err);
       }
     }
 
     load();
 
     return () => {
-      isCancelled = true;
+      mounted = false;
     };
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileId]);
 
-  const handleSave = async () => {
-    // Pass an object with the 'content' key
-    await updateFile(fileId, { content: content });
-    setIsEditing(false);
+  /* ---------------- Menu ---------------- */
+
+  const handleMenuClick = (event) => {
+    event.stopPropagation();
+    setAnchorEl(event.currentTarget);
   };
-  const handleDelete = async () => {
-    if (window.confirm("Delete this file?")) {
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  /* ---------------- Rename ---------------- */
+
+  const handleRenameOpen = () => {
+    handleMenuClose();
+    setRenameOpen(true);
+  };
+
+  const handleRenameSave = async () => {
+    const name = newFileName.trim();
+
+    if (!name || !fileId) return;
+
+    await updateFile(fileId, { name });
+
+    setFile((prev) => ({ ...prev, name }));
+    setRenameOpen(false);
+  };
+
+  /* ---------------- Delete ---------------- */
+
+  const handleDeleteOpen = () => {
+    handleMenuClose();
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!fileId) return;
+
+    try {
       await db.files.delete(fileId);
-      if (file?.directoryId) fetchFiles(file.directoryId);
+
+      if (file?.directoryId) {
+        await fetchFiles(file.directoryId);
+      }
+
       navigate(-1);
+    } catch (err) {
+      console.error("Delete failed:", err);
     }
   };
 
-  if (!file) return null;
+  /* ---------------- Save Content ---------------- */
 
-  const isEmpty =
-    !content || (typeof content === "string" && content.trim() === "");
+  const handleSave = async () => {
+    if (!fileId) return;
+
+    await updateFile(fileId, { content });
+
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setContent(file?.content || "");
+    setIsEditing(false);
+  };
+
+  /* ---------------- UI Helpers ---------------- */
+
+  if (!file) {
+    return (
+      <Container sx={{ py: 6 }}>
+        <Typography color="text.secondary">Loading file...</Typography>
+      </Container>
+    );
+  }
+
+  const isEmpty = !content || content.trim() === "";
+
+  const markdownStyles = {
+    "& h1,h2,h3,h4,h5,h6": { fontWeight: 600 },
+    "& blockquote": {
+      borderLeft: `4px solid ${theme.palette.divider}`,
+      pl: 2,
+      color: theme.palette.text.secondary,
+      fontStyle: "italic",
+      bgcolor: theme.palette.action.hover,
+    },
+    "& pre": {
+      backgroundColor:
+        theme.palette.mode === "dark" ? "#0d1117" : "#f6f8fa",
+      padding: 2,
+      borderRadius: 2,
+      overflow: "auto",
+    },
+    "& code": {
+      fontFamily: "monospace",
+      fontSize: "0.9em",
+      bgcolor:
+        theme.palette.mode === "dark" ? "#161b22" : "#f6f8fa",
+      px: 0.5,
+      py: 0.2,
+      borderRadius: 1,
+    },
+    "& a": {
+      color: theme.palette.primary.main,
+      textDecoration: "underline",
+    },
+    "& ul,& ol": { pl: 4, mb: 2 },
+    "& table": { width: "100%", borderCollapse: "collapse", mb: 2 },
+    "& th,& td": {
+      border: `1px solid ${theme.palette.divider}`,
+      padding: 1,
+      textAlign: "left",
+    },
+    "& th": { bgcolor: theme.palette.action.hover },
+  };
+
+  /* ---------------- UI ---------------- */
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
+      {/* Header */}
+
       <Box sx={{ mb: 3 }}>
         <Box
           sx={{
@@ -87,31 +223,75 @@ export default function FileEditorPage() {
             alignItems: "center",
             gap: 2,
             flexWrap: "wrap",
-            mb: 1,
           }}
         >
           <IconButton onClick={() => navigate(-1)}>
-            <ArrowBackRoundedIcon />
+            <ArrowBackIosIcon />
           </IconButton>
+
           <Typography
             variant="h6"
             fontWeight={700}
-            sx={{ flexGrow: 1, minWidth: 0 }}
+            sx={{ flexGrow: 1 }}
             noWrap
           >
             {file.name}
           </Typography>
+
+          <IconButton
+            id="file-options-button"
+            onClick={handleMenuClick}
+          >
+            <MoreHorizIcon />
+          </IconButton>
+
+          <Menu
+            id="file-menu"
+            anchorEl={anchorEl}
+            open={open}
+            onClose={handleMenuClose}
+            MenuListProps={{
+              "aria-labelledby": "file-options-button",
+            }}
+          >
+            <MenuItem
+              onClick={() => {
+                handleMenuClose();
+                setIsEditing(true);
+              }}
+            >
+              <ListItemIcon>
+                <EditRoundedIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Edit Content</ListItemText>
+            </MenuItem>
+
+            <MenuItem onClick={handleRenameOpen}>
+              <ListItemIcon>
+                <DriveFileRenameOutlineRoundedIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Rename File</ListItemText>
+            </MenuItem>
+
+            <MenuItem
+              onClick={handleDeleteOpen}
+              sx={{ color: "error.main" }}
+            >
+              <ListItemIcon sx={{ color: "error.main" }}>
+                <DeleteOutlineRoundedIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Delete File</ListItemText>
+            </MenuItem>
+          </Menu>
         </Box>
 
-        <Stack
-          direction="row"
-          display="flex"
-          justifyContent="flex-end"
-          width="100%"
-          spacing={1}
-          sx={{ flexWrap: "wrap" }}
-        >
-          {isEditing ? (
+        {isEditing && (
+          <Stack
+            direction="row"
+            justifyContent="flex-end"
+            spacing={1}
+            sx={{ mt: 2 }}
+          >
             <Button
               variant="contained"
               startIcon={<SaveRoundedIcon />}
@@ -119,86 +299,30 @@ export default function FileEditorPage() {
             >
               Save
             </Button>
-          ) : (
-            <Button
-              variant="outlined"
-              startIcon={<EditRoundedIcon />}
-              onClick={() => setIsEditing(true)}
-            >
-              Edit
+
+            <Button variant="outlined" onClick={handleCancelEdit}>
+              Cancel
             </Button>
-          )}
-          <Button
-            variant="outlined"
-            color="error"
-            startIcon={<DeleteOutlineRoundedIcon />}
-            onClick={handleDelete}
-          >
-            Delete
-          </Button>
-        </Stack>
+          </Stack>
+        )}
       </Box>
+
+      {/* Viewer */}
 
       {!isEditing && (
         <Paper
           sx={{
             p: 3,
             minHeight: "70vh",
-            bgcolor: "background.paper",
-            overflowY: "auto",
             border: `1px solid ${theme.palette.divider}`,
-            borderRadius: 2,
           }}
         >
           {isEmpty ? (
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ fontStyle: "italic" }}
-            >
-              No content yet. Click “Edit” to add your Markdown.
+            <Typography color="text.secondary" fontStyle="italic">
+              No content yet. Use the menu to edit.
             </Typography>
           ) : (
-            <Box
-              sx={{
-                "& h1,h2,h3,h4,h5,h6": { fontWeight: 600 },
-                "& blockquote": {
-                  borderLeft: `4px solid ${theme.palette.divider}`,
-                  pl: 2,
-                  color: theme.palette.text.secondary,
-                  fontStyle: "italic",
-                  bgcolor: theme.palette.action.hover,
-                },
-                "& pre": {
-                  backgroundColor:
-                    theme.palette.mode === "dark" ? "#0d1117" : "#f6f8fa",
-                  padding: 2,
-                  borderRadius: 2,
-                  overflow: "auto",
-                },
-                "& code": {
-                  fontFamily: "monospace",
-                  fontSize: "0.9em",
-                  bgcolor:
-                    theme.palette.mode === "dark" ? "#161b22" : "#f6f8fa",
-                  px: 0.5,
-                  py: 0.2,
-                  borderRadius: 1,
-                },
-                "& a": {
-                  color: theme.palette.primary.main,
-                  textDecoration: "underline",
-                },
-                "& ul, & ol": { pl: 4, mb: 2 },
-                "& table": { width: "100%", borderCollapse: "collapse", mb: 2 },
-                "& th, & td": {
-                  border: `1px solid ${theme.palette.divider}`,
-                  padding: 1,
-                  textAlign: "left",
-                },
-                "& th": { bgcolor: theme.palette.action.hover },
-              }}
-            >
+            <Box sx={markdownStyles}>
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeRaw]}
@@ -209,6 +333,8 @@ export default function FileEditorPage() {
           )}
         </Paper>
       )}
+
+      {/* Editor */}
 
       {isEditing && (
         <Box
@@ -221,42 +347,25 @@ export default function FileEditorPage() {
         >
           <TextareaAutosize
             value={content}
-            onChange={(e) => setContent(e.target.value || "")}
+            onChange={(e) => setContent(e.target.value)}
             style={{
               width: isMobile ? "100%" : "50%",
               minHeight: "70vh",
               fontFamily: "monospace",
-              fontSize: 14,
-              border: "1px solid #ccc",
-              borderRadius: 4,
               padding: 12,
-              boxSizing: "border-box",
-              resize: "vertical",
-              backgroundColor: theme.palette.background.default,
-              color: theme.palette.text.primary,
+              borderRadius: 4,
+              border: "1px solid #ccc",
             }}
           />
+
           <Paper
             sx={{
               width: isMobile ? "100%" : "50%",
               p: 3,
-              overflowY: "auto",
-              bgcolor: "background.paper",
               border: `1px solid ${theme.palette.divider}`,
-              borderRadius: 2,
             }}
           >
-            <Box
-              sx={{
-                "& h1,h2,h3,h4,h5,h6": { fontWeight: 600 },
-                "& table": { width: "100%", borderCollapse: "collapse", mb: 2 },
-                "& th, & td": {
-                  border: `1px solid ${theme.palette.divider}`,
-                  padding: 1,
-                  textAlign: "left",
-                },
-              }}
-            >
+            <Box sx={markdownStyles}>
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeRaw]}
@@ -267,6 +376,60 @@ export default function FileEditorPage() {
           </Paper>
         </Box>
       )}
+
+      {/* Rename Dialog */}
+
+      <Dialog open={renameOpen} onClose={() => setRenameOpen(false)}>
+        <DialogTitle>Rename File</DialogTitle>
+
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            label="File name"
+            value={newFileName}
+            onChange={(e) => setNewFileName(e.target.value)}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setRenameOpen(false)}>Cancel</Button>
+
+          <Button variant="contained" onClick={handleRenameSave}>
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Dialog */}
+
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+      >
+        <DialogTitle>Delete File</DialogTitle>
+
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete "{file.name}"?
+          </Typography>
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirmOpen(false)}>
+            Cancel
+          </Button>
+
+          <Button
+            color="error"
+            variant="contained"
+            onClick={handleDeleteConfirm}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }
