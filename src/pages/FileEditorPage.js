@@ -31,7 +31,6 @@ import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
-
 import TextareaAutosize from "@mui/material/TextareaAutosize";
 
 import { useDexieFileSystem } from "../hooks/useDexieFileSystem";
@@ -54,38 +53,29 @@ export default function FileEditorPage() {
 
   const [renameOpen, setRenameOpen] = useState(false);
   const [newFileName, setNewFileName] = useState("");
-
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   /* ---------------- Load File ---------------- */
-
   useEffect(() => {
     if (!fileId) return;
 
     let mounted = true;
 
     async function load() {
-      try {
-        const f = await getFile(fileId);
-
-        if (!mounted) return;
-
-        if (!f) {
-          alert("File not found");
-          navigate(-1);
-          return;
-        }
-
-        setFile(f);
-        setContent(typeof f.content === "string" ? f.content : "");
-        setNewFileName(f.name || "");
-      } catch (err) {
-        console.error("Failed to load file:", err);
+      const f = await getFile(fileId);
+      if (!mounted) return;
+      if (!f) {
+        alert("File not found");
+        navigate(-1);
+        return;
       }
+
+      setFile(f);
+      setContent(f.content || "");
+      setNewFileName(f.name || "");
     }
 
     load();
-
     return () => {
       mounted = false;
     };
@@ -93,64 +83,42 @@ export default function FileEditorPage() {
   }, [fileId]);
 
   /* ---------------- Menu ---------------- */
-
   const handleMenuClick = (event) => {
     event.stopPropagation();
     setAnchorEl(event.currentTarget);
   };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
+  const handleMenuClose = () => setAnchorEl(null);
 
   /* ---------------- Rename ---------------- */
-
   const handleRenameOpen = () => {
     handleMenuClose();
     setRenameOpen(true);
   };
-
   const handleRenameSave = async () => {
     const name = newFileName.trim();
-
     if (!name || !fileId) return;
-
     await updateFile(fileId, { name });
-
     setFile((prev) => ({ ...prev, name }));
     setRenameOpen(false);
   };
 
   /* ---------------- Delete ---------------- */
-
   const handleDeleteOpen = () => {
     handleMenuClose();
     setDeleteConfirmOpen(true);
   };
-
   const handleDeleteConfirm = async () => {
     if (!fileId) return;
-
-    try {
-      await db.files.delete(fileId);
-
-      if (file?.directoryId) {
-        await fetchFiles(file.directoryId);
-      }
-
-      navigate(-1);
-    } catch (err) {
-      console.error("Delete failed:", err);
-    }
+    await db.files.delete(fileId);
+    if (file?.directoryId) await fetchFiles(file.directoryId);
+    navigate(-1);
   };
 
-  /* ---------------- Save Content ---------------- */
-
+  /* ---------------- Save ---------------- */
   const handleSave = async () => {
     if (!fileId) return;
-
     await updateFile(fileId, { content });
-
+    setFile((prev) => ({ ...prev, content }));
     setIsEditing(false);
   };
 
@@ -159,127 +127,23 @@ export default function FileEditorPage() {
     setIsEditing(false);
   };
 
-  /* ---------------- UI Helpers ---------------- */
-
-  if (!file) {
-    return (
-      <Container sx={{ py: 6 }}>
-        <Typography color="text.secondary">Loading file...</Typography>
-      </Container>
-    );
-  }
-
   const isEmpty = !content || content.trim() === "";
 
-  // Fixed markdown styles with proper overflow handling
   const markdownStyles = {
-    // Base container styles
     width: "100%",
     overflowX: "auto",
     wordWrap: "break-word",
-
-    // Typography
-    "& h1,h2,h3,h4,h5,h6": {
-      fontWeight: 600,
-      wordWrap: "break-word",
-    },
-
-    // Blockquotes
-    "& blockquote": {
-      borderLeft: `4px solid ${theme.palette.divider}`,
-      pl: 2,
-      color: theme.palette.text.secondary,
-      fontStyle: "italic",
-      bgcolor: theme.palette.action.hover,
-      wordWrap: "break-word",
-      overflowX: "auto",
-    },
-
-    // Code blocks - main overflow fix
     "& pre": {
       backgroundColor: theme.palette.mode === "dark" ? "#0d1117" : "#f6f8fa",
       padding: 2,
       borderRadius: 2,
       overflowX: "auto",
-      overflowY: "hidden",
-      maxWidth: "100%",
       whiteSpace: "pre-wrap",
       wordWrap: "break-word",
-      "& code": {
-        whiteSpace: "pre-wrap",
-        wordWrap: "break-word",
-        backgroundColor: "transparent",
-        padding: 0,
-      },
-    },
-
-    // Inline code
-    "& code": {
-      fontFamily: "monospace",
-      fontSize: "0.9em",
-      bgcolor: theme.palette.mode === "dark" ? "#161b22" : "#f6f8fa",
-      px: 0.5,
-      py: 0.2,
-      borderRadius: 1,
-      whiteSpace: "pre-wrap",
-      wordWrap: "break-word",
-    },
-
-    // Links
-    "& a": {
-      color: theme.palette.primary.main,
-      textDecoration: "underline",
-      wordWrap: "break-word",
-    },
-
-    // Lists
-    "& ul,& ol": {
-      pl: 4,
-      mb: 2,
-      wordWrap: "break-word",
-    },
-
-    // Tables
-    "& table": {
-      width: "100%",
-      borderCollapse: "collapse",
-      mb: 2,
-      display: "block",
-      overflowX: "auto",
-      maxWidth: "100%",
-    },
-
-    "& th,& td": {
-      border: `1px solid ${theme.palette.divider}`,
-      padding: 1,
-      textAlign: "left",
-      wordWrap: "break-word",
-      minWidth: "100px",
-    },
-
-    "& th": {
-      bgcolor: theme.palette.action.hover,
-    },
-
-    // Images
-    "& img": {
-      maxWidth: "100%",
-      height: "auto",
-    },
-
-    // Paragraphs and other elements
-    "& p": {
-      wordWrap: "break-word",
-      overflowWrap: "break-word",
-    },
-
-    "& div": {
-      wordWrap: "break-word",
-      overflowWrap: "break-word",
+      "& code": { whiteSpace: "pre-wrap", wordWrap: "break-word" },
     },
   };
 
-  // Additional styles for the Paper container
   const paperStyles = {
     p: 3,
     minHeight: "70vh",
@@ -289,110 +153,106 @@ export default function FileEditorPage() {
     width: "100%",
   };
 
-  /* ---------------- UI ---------------- */
-
   return (
     <Container maxWidth="lg" sx={{ py: 4, overflowX: "hidden" }}>
       {/* Header */}
-      <Box sx={{ mb: 3 }}>
+      <Box sx={{ mb: 3, display: "flex", alignItems: "center", gap: 1 }}>
+        <IconButton onClick={() => navigate(-1)}>
+          <ArrowBackIosIcon />
+        </IconButton>
+
+        <Typography
+          variant="h6"
+          fontWeight={700}
+          sx={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}
+          title={file?.name}
+        >
+          {file?.name}
+        </Typography>
+
+        <IconButton onClick={handleMenuClick}>
+          <MoreHorizIcon />
+        </IconButton>
+
+        <Menu anchorEl={anchorEl} open={open} onClose={handleMenuClose}>
+          <MenuItem
+            onClick={() => {
+              handleMenuClose();
+              setIsEditing(true);
+            }}
+          >
+            <ListItemIcon>
+              <EditRoundedIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Edit Content</ListItemText>
+          </MenuItem>
+
+          <MenuItem onClick={handleRenameOpen}>
+            <ListItemIcon>
+              <DriveFileRenameOutlineRoundedIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Rename File</ListItemText>
+          </MenuItem>
+
+          <MenuItem onClick={handleDeleteOpen} sx={{ color: "error.main" }}>
+            <ListItemIcon sx={{ color: "error.main" }}>
+              <DeleteOutlineRoundedIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Delete File</ListItemText>
+          </MenuItem>
+        </Menu>
+      </Box>
+
+      {/* Markdown Editor */}
+      {isEditing ? (
         <Box
           sx={{
             display: "flex",
-            alignItems: "center",
-            gap: 1,
-            flexWrap: "nowrap",
-            width: "100%",
+            flexDirection: isMobile ? "column-reverse" : "row",
+            gap: 2,
+            minHeight: "70vh",
           }}
         >
-          <IconButton onClick={() => navigate(-1)} sx={{ flexShrink: 0 }}>
-            <ArrowBackIosIcon />
-          </IconButton>
+          <TextareaAutosize
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            style={{
+              width: isMobile ? "100%" : "50%",
+              minHeight: isMobile ? "50vh" : "70vh",
+              fontFamily: "monospace",
+              fontSize: isMobile ? 16 : 14,
+              padding: 12,
+              borderRadius: 4,
+              border: `1px solid ${theme.palette.divider}`,
+              backgroundColor: theme.palette.background.paper,
+              color: theme.palette.text.primary,
+              resize: "vertical",
+              overflow: "auto",
+              outline: "none",
+            }}
+          />
 
-          <Typography
-            variant="h6"
-            fontWeight={700}
+          <Paper
             sx={{
-              flex: "1 1 auto",
-              minWidth: 0,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              px: 1,
-            }}
-            title={file.name}
-          >
-            {file.name}
-          </Typography>
-
-          <IconButton
-            id="file-options-button"
-            onClick={handleMenuClick}
-            sx={{ flexShrink: 0 }}
-          >
-            <MoreHorizIcon />
-          </IconButton>
-
-          <Menu
-            id="file-menu"
-            anchorEl={anchorEl}
-            open={open}
-            onClose={handleMenuClose}
-            MenuListProps={{
-              "aria-labelledby": "file-options-button",
+              width: isMobile ? "100%" : "50%",
+              p: 3,
+              border: `1px solid ${theme.palette.divider}`,
+              overflowX: "auto",
+              overflowY: "auto",
+              minHeight: isMobile ? "50vh" : "70vh",
             }}
           >
-            <MenuItem
-              onClick={() => {
-                handleMenuClose();
-                setIsEditing(true);
-              }}
-            >
-              <ListItemIcon>
-                <EditRoundedIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Edit Content</ListItemText>
-            </MenuItem>
-
-            <MenuItem onClick={handleRenameOpen}>
-              <ListItemIcon>
-                <DriveFileRenameOutlineRoundedIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Rename File</ListItemText>
-            </MenuItem>
-
-            <MenuItem onClick={handleDeleteOpen} sx={{ color: "error.main" }}>
-              <ListItemIcon sx={{ color: "error.main" }}>
-                <DeleteOutlineRoundedIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Delete File</ListItemText>
-            </MenuItem>
-          </Menu>
+            <Box sx={markdownStyles}>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw]}
+              >
+                {content || "*Nothing to preview yet.*"}
+              </ReactMarkdown>
+            </Box>
+          </Paper>
         </Box>
-
-        {isEditing && (
-          <Stack
-            direction="row"
-            justifyContent="flex-end"
-            spacing={1}
-            sx={{ mt: 2 }}
-          >
-            <Button
-              variant="contained"
-              startIcon={<SaveRoundedIcon />}
-              onClick={handleSave}
-            >
-              Save
-            </Button>
-
-            <Button variant="outlined" onClick={handleCancelEdit}>
-              Cancel
-            </Button>
-          </Stack>
-        )}
-      </Box>
-
-      {/* Viewer */}
-      {!isEditing && (
+      ) : (
         <Paper sx={paperStyles}>
           {isEmpty ? (
             <Typography color="text.secondary" fontStyle="italic">
@@ -411,60 +271,25 @@ export default function FileEditorPage() {
         </Paper>
       )}
 
-      {/* Editor */}
+      {/* Save / Cancel */}
       {isEditing && (
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: isMobile ? "column-reverse" : "row", // Preview on top for mobile
-            gap: 2,
-            minHeight: "70vh",
-            width: "100%",
-          }}
+        <Stack
+          direction="row"
+          justifyContent="flex-end"
+          spacing={1}
+          sx={{ mt: 2 }}
         >
-          {/* Textarea - Now responsive to theme */}
-          <TextareaAutosize
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            style={{
-              width: isMobile ? "100%" : "50%",
-              minHeight: isMobile ? "50vh" : "70vh",
-              fontFamily: "monospace",
-              fontSize: isMobile ? 16 : 14,
-              padding: 12,
-              borderRadius: 4,
-              border: `1px solid ${theme.palette.divider}`,
-              backgroundColor: theme.palette.background.paper,
-              color: theme.palette.text.primary,
-              resize: "vertical",
-              overflow: "auto",
-              outline: "none",
-              WebkitTextSizeAdjust: "100%",
-            }}
-          />
-
-          {/* Preview */}
-          <Paper
-            sx={{
-              width: isMobile ? "100%" : "50%",
-              p: 3,
-              border: `1px solid ${theme.palette.divider}`,
-              overflowX: "auto",
-              overflowY: "auto",
-              minHeight: isMobile ? "50vh" : "70vh",
-              order: isMobile ? 1 : 2, // Ensure preview is first on mobile
-            }}
+          <Button
+            variant="contained"
+            startIcon={<SaveRoundedIcon />}
+            onClick={handleSave}
           >
-            <Box sx={markdownStyles}>
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw]}
-              >
-                {content || "*Nothing to preview yet.*"}
-              </ReactMarkdown>
-            </Box>
-          </Paper>
-        </Box>
+            Save
+          </Button>
+          <Button variant="outlined" onClick={handleCancelEdit}>
+            Cancel
+          </Button>
+        </Stack>
       )}
 
       {/* Rename Dialog */}
@@ -475,7 +300,6 @@ export default function FileEditorPage() {
         fullWidth
       >
         <DialogTitle>Rename File</DialogTitle>
-
         <DialogContent>
           <TextField
             autoFocus
@@ -483,19 +307,10 @@ export default function FileEditorPage() {
             label="File name"
             value={newFileName}
             onChange={(e) => setNewFileName(e.target.value)}
-            sx={{
-              mt: 1,
-              "& input": {
-                fontSize: { xs: 16, sm: 14 },
-                WebkitTextSizeAdjust: "100%",
-              },
-            }}
           />
         </DialogContent>
-
         <DialogActions>
           <Button onClick={() => setRenameOpen(false)}>Cancel</Button>
-
           <Button variant="contained" onClick={handleRenameSave}>
             Save
           </Button>
@@ -510,16 +325,13 @@ export default function FileEditorPage() {
         fullWidth
       >
         <DialogTitle>Delete File</DialogTitle>
-
         <DialogContent>
           <Typography>
-            Are you sure you want to delete "{file.name}"?
+            Are you sure you want to delete "{file?.name}"?
           </Typography>
         </DialogContent>
-
         <DialogActions>
           <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
-
           <Button
             color="error"
             variant="contained"

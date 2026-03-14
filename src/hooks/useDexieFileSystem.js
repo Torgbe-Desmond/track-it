@@ -98,13 +98,20 @@ export function useDexieFileSystem() {
   };
 
   // Add file
-  const addFile = async ({ id, name, directoryId, content = "" }) => {
+  const addFile = async ({
+    id,
+    name,
+    directoryId,
+    content = "",
+    values = {},
+  }) => {
     const now = Date.now();
     await db.files.add({
       id,
       name,
       directoryId,
       content,
+      values, // store user-entered values
       size: content.length,
       createdAt: now,
       updatedAt: now,
@@ -125,8 +132,6 @@ export function useDexieFileSystem() {
   // Update file content
   const updateFile = async (id, updates) => {
     const now = Date.now();
-    // Spread the updates object (e.g., { name: '...' } or { content: '...' })
-    // and add the updatedAt timestamp
     await db.files.update(id, { ...updates, updatedAt: now });
 
     const file = await db.files.get(id);

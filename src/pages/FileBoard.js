@@ -26,9 +26,11 @@ import DriveFileRenameOutlineRoundedIcon from "@mui/icons-material/DriveFileRena
 import FolderDeleteRoundedIcon from "@mui/icons-material/FolderDeleteRounded";
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import SchemaRoundedIcon from "@mui/icons-material/SchemaRounded";
 
 import { useDexieFileSystem } from "../hooks/useDexieFileSystem";
 import AddFile from "../components/AddFile";
+import { db } from "../db/_db";
 
 export default function FileBoard() {
   const { dirId } = useParams();
@@ -230,6 +232,25 @@ export default function FileBoard() {
             </ListItemIcon>
             <ListItemText>Delete Folder</ListItemText>
           </MenuItem>
+
+          <MenuItem
+            onClick={async () => {
+              handleMenuClose();
+
+              const schemaFile = await db.files
+                .where({ directoryId: dirId, type: "schema" })
+                .first();
+
+              if (schemaFile) {
+                navigate(`/file/${schemaFile.id}`);
+              }
+            }}
+          >
+            <ListItemIcon>
+              <SchemaRoundedIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Edit Schema</ListItemText>
+          </MenuItem>
         </Menu>
       </Box>
 
@@ -251,42 +272,44 @@ export default function FileBoard() {
             </Typography>
           </Box>
         ) : (
-          files.map((file) => (
-            <Card
-              key={file.id}
-              variant="outlined"
-              sx={{
-                borderRadius: 0,
-                borderTop: "none",
-                borderLeft: "none",
-                borderRight: "none",
-              }}
-            >
-              <Box
+          files
+            .filter((f) => f.type !== "schema")
+            .map((file) => (
+              <Card
+                key={file.id}
+                variant="outlined"
                 sx={{
-                  px: 2.5,
-                  gap: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  py: 1.8,
-                  cursor: "pointer",
-                  "&:hover": {
-                    color: "primary.main",
-                    bgcolor: "action.hover",
-                  },
+                  borderRadius: 0,
+                  borderTop: "none",
+                  borderLeft: "none",
+                  borderRight: "none",
                 }}
-                onClick={() => handleFileClick(file.id)}
               >
-                <InsertDriveFileRoundedIcon
-                  sx={{ color: "primary.main", fontSize: 32 }}
-                />
+                <Box
+                  sx={{
+                    px: 2.5,
+                    gap: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    py: 1.8,
+                    cursor: "pointer",
+                    "&:hover": {
+                      color: "primary.main",
+                      bgcolor: "action.hover",
+                    },
+                  }}
+                  onClick={() => handleFileClick(file.id)}
+                >
+                  <InsertDriveFileRoundedIcon
+                    sx={{ color: "primary.main", fontSize: 32 }}
+                  />
 
-                <Typography noWrap sx={{ flex: 1, fontWeight: 500 }}>
-                  {file.name}
-                </Typography>
-              </Box>
-            </Card>
-          ))
+                  <Typography noWrap sx={{ flex: 1, fontWeight: 500 }}>
+                    {file.name}
+                  </Typography>
+                </Box>
+              </Card>
+            ))
         )}
       </Stack>
 
@@ -319,7 +342,7 @@ export default function FileBoard() {
             sx={{
               mt: 1,
               "& input": {
-                fontSize: { xs: 16, sm: 14 }, 
+                fontSize: { xs: 16, sm: 14 },
                 WebkitTextSizeAdjust: "100%",
               },
             }}

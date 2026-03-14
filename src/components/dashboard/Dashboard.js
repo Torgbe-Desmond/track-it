@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
-import { Container } from "@mui/material";
+import { Container, useTheme } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useDexieFileSystem } from "../hooks/useDexieFileSystem";
-import ProjectHeader from "../components/dashboard/ProjectHeader";
-import ProjectList from "../components/dashboard/ProjectList";
-import NewProjectDialog from "../components/dashboard/NewProjectDialog";
 
-
+import ProjectHeader from "./ProjectHeader";
+import ProjectList from "./ProjectList";
+import NewProjectDialog from "./NewProjectDialog";
 
 export default function Dashboard() {
+  const theme = useTheme();
   const navigate = useNavigate();
   const { directories, fetchDirectories, addDirectory } = useDexieFileSystem();
 
